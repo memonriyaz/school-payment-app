@@ -19,10 +19,10 @@ const Login: React.FC = () => {
     try {
       const response = await apiService.login(email, password);
       login(response.access_token, response.user);
-      navigate("/dashboard");
+      navigate("/");
     } catch (err: any) {
       setError(
-        err.response?.data?.message || "Login failed. Please try again.",
+        err.response?.data?.message || "Login failed. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -100,9 +100,9 @@ const Login: React.FC = () => {
           </div>
 
           <div className="text-center space-y-2">
-            <p className="text-sm text-gray-600">
+            {/* <p className="text-sm text-gray-600">
               Demo credentials: test@example.com / password123
-            </p>
+            </p> */}
             <p className="text-sm text-gray-600">
               Don't have an account?{" "}
               <Link

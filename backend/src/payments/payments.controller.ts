@@ -291,7 +291,7 @@ export class PaymentsController {
 
         // Redirect to dashboard with success status
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        const successUrl = `${frontendUrl}/dashboard?message=Payment successful&collect_id=${collectRequestId}&status=success`;
+        const successUrl = `${frontendUrl}/?message=Payment successful&collect_id=${collectRequestId}&status=success`;
 
         return `
           <!DOCTYPE html>
@@ -446,7 +446,7 @@ export class PaymentsController {
         );
 
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        const statusUrl = `${frontendUrl}/dashboard?message=Payment ${statusMessage}&collect_id=${collectRequestId}&status=${finalStatus.toLowerCase()}`;
+        const statusUrl = `${frontendUrl}/?message=Payment ${statusMessage}&collect_id=${collectRequestId}&status=${finalStatus.toLowerCase()}`;
 
         return `
           <!DOCTYPE html>
@@ -480,7 +480,7 @@ export class PaymentsController {
       console.error('Payment callback error:', error);
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      const errorUrl = `${frontendUrl}/dashboard?message=Payment error&error=${encodeURIComponent(error.message)}`;
+      const errorUrl = `${frontendUrl}/?message=Payment error&error=${encodeURIComponent(error.message)}`;
 
       return `
         <!DOCTYPE html>

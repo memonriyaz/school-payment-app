@@ -15,11 +15,11 @@ A modern, full-stack payment management system for educational institutions buil
 <div align="center">
 
 #### Sign In Page
-![Sign In Page](./screenshots/signin.png)
+![Sign In Page](./screenshots/signin.png) \n
 *Secure user authentication with email and password*
 
 #### User Registration
-![User Registration](./screenshots/register.png)
+![User Registration](./screenshots/register.png)  \n
 *New user registration with form validation*
 
 </div>

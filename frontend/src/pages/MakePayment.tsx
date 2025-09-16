@@ -327,9 +327,10 @@ const MakePayment: React.FC = () => {
                   name="school_id"
                   required
                   value={formData.school_id}
-                  onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="Enter school ID"
+                  disabled
+                  readOnly
+                  className="mt-1 block w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm bg-gray-50 text-gray-700 cursor-not-allowed focus:outline-none"
+                  placeholder="School ID (System Generated)"
                 />
               </div>
               <div>
@@ -345,9 +346,10 @@ const MakePayment: React.FC = () => {
                   name="trustee_id"
                   required
                   value={formData.trustee_id}
-                  onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="Enter trustee ID"
+                  disabled
+                  readOnly
+                  className="mt-1 block w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm bg-gray-50 text-gray-700 cursor-not-allowed focus:outline-none"
+                  placeholder="Trustee ID (System Generated)"
                 />
               </div>
             </div>

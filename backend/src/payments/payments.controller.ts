@@ -1,0 +1,510 @@
+import {
+  Body,
+  Controller,
+  Post,
+  UseGuards,
+  Get,
+  Param,
+  Query,
+  BadRequestException,
+  Headers,
+  Req,
+} from '@nestjs/common';
+import { PaymentsService } from './payments.service';
+import { TransactionsService } from './transactions.service';
+import { PaymentSchedulerService } from './payment-scheduler.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { Request } from 'express';
+import {
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  IsEmail,
+  IsObject,
+} from 'class-validator';
+
+class StudentInfoDto {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  id: string;
+
+  @IsEmail()
+  email: string;
+}
+
+class CreatePaymentDto {
+  @IsString()
+  @IsNotEmpty()
+  school_id: string;
+
+  @IsString()
+  @IsNotEmpty()
+  trustee_id: string;
+
+  @IsObject()
+  student_info: StudentInfoDto;
+
+  @IsNumber()
+  amount: number;
+
+  @IsString()
+  gateway_name?: string;
+
+  @IsString()
+  description?: string;
+}
+
+@Controller()
+export class PaymentsController {
+  constructor(
+    private paymentsService: PaymentsService,
+    private transactionsService: TransactionsService,
+    private paymentSchedulerService: PaymentSchedulerService,
+  ) {}
+
+  @Post('create-payment')
+  @UseGuards(JwtAuthGuard)
+  async createPayment(@Body() createPaymentDto: CreatePaymentDto) {
+    return this.paymentsService.createPayment(createPaymentDto);
+  }
+
+  @Post('webhook')
+  async handleWebhook(@Body() webhookData: any) {
+    return this.paymentsService.handleWebhook(webhookData);
+  }
+
+  @Get('transactions')
+  @UseGuards(JwtAuthGuard)
+  async getTransactions(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('sort') sort: string = 'createdAt',
+    @Query('order') order: string = 'desc',
+    @Query('status') status?: string,
+    @Query('school_id') schoolId?: string,
+    @Query('gateway') gateway?: string,
+  ) {
+    return this.transactionsService.getTransactions({
+      page: Number(page),
+      limit: Number(limit),
+      sort,
+      order,
+      status,
+      schoolId,
+      gateway,
+    });
+  }
+
+  @Get('transactions/school/:schoolId')
+  @UseGuards(JwtAuthGuard)
+  async getTransactionsBySchool(
+    @Param('schoolId') schoolId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.transactionsService.getTransactionsBySchool(schoolId, {
+      page: Number(page),
+      limit: Number(limit),
+    });
+  }
+
+  @Get('transaction-status/:customOrderId')
+  @UseGuards(JwtAuthGuard)
+  async getTransactionStatus(@Param('customOrderId') customOrderId: string) {
+    return this.transactionsService.getTransactionStatus(customOrderId);
+  }
+
+  @Get('payment-status/:collectRequestId')
+  @UseGuards(JwtAuthGuard)
+  async checkPaymentStatus(
+    @Param('collectRequestId') collectRequestId: string,
+    @Query('school_id') schoolId: string,
+  ) {
+    if (!schoolId) {
+      throw new BadRequestException('school_id is required');
+    }
+    return this.paymentsService.checkPaymentStatus(collectRequestId, schoolId);
+  }
+
+  @Post('cancel-abandoned-payments')
+  @UseGuards(JwtAuthGuard)
+  async cancelAbandonedPayments(
+    @Query('timeout_minutes') timeoutMinutes: number = 30,
+  ) {
+    console.log('=== CANCELLING ABANDONED PAYMENTS ===');
+    console.log('Timeout minutes:', timeoutMinutes);
+    console.log('=====================================');
+
+    return this.paymentsService.cancelAbandonedPayments(Number(timeoutMinutes));
+  }
+
+  @Post('cancel-payment/:customOrderId')
+  @UseGuards(JwtAuthGuard)
+  async cancelPaymentByOrderId(
+    @Param('customOrderId') customOrderId: string,
+    @Body('reason') reason?: string,
+  ) {
+    console.log('=== MANUAL PAYMENT CANCELLATION ===');
+    console.log('Order ID:', customOrderId);
+    console.log('Reason:', reason || 'Manual cancellation');
+    console.log('===================================');
+
+    return this.paymentsService.cancelPaymentByOrderId(customOrderId, reason);
+  }
+
+  @Get('debug-pending-payments')
+  @UseGuards(JwtAuthGuard)
+  async debugPendingPayments(
+    @Query('timeout_minutes') timeoutMinutes: number = 30,
+  ) {
+    console.log('=== DEBUG PENDING PAYMENTS ===');
+    console.log('Timeout minutes:', timeoutMinutes);
+    console.log('==============================');
+
+    return this.paymentsService.debugPendingPayments(Number(timeoutMinutes));
+  }
+
+  @Post('force-cancel-abandoned')
+  @UseGuards(JwtAuthGuard)
+  async forceCancelAbandoned(
+    @Query('timeout_minutes') timeoutMinutes: number = 5,
+  ) {
+    console.log('=== FORCE CANCEL ABANDONED PAYMENTS ===');
+    console.log('Timeout minutes:', timeoutMinutes);
+    console.log(
+      'This will cancel payments older than',
+      timeoutMinutes,
+      'minutes',
+    );
+    console.log('=======================================');
+
+    return this.paymentsService.forceCancelAbandonedPayments(
+      Number(timeoutMinutes),
+    );
+  }
+
+  @Post('trigger-scheduler')
+  @UseGuards(JwtAuthGuard)
+  async triggerScheduler(
+    @Query('timeout_minutes') timeoutMinutes: number = 30,
+  ) {
+    console.log('=== MANUALLY TRIGGERING SCHEDULER ===');
+    console.log('This will test the scheduler logic');
+    console.log('====================================');
+
+    return this.paymentSchedulerService.triggerManualCleanup(
+      Number(timeoutMinutes),
+    );
+  }
+
+  @Get('payment-callback')
+  async handlePaymentCallback(
+    @Query('EdvironCollectRequestId') collectRequestId: string,
+    @Query('status') status: string,
+    @Query() allParams: any,
+  ) {
+    try {
+      console.log('=== PAYMENT CALLBACK RECEIVED ===');
+      console.log('Collect Request ID:', collectRequestId);
+      console.log('Status:', status);
+      console.log('All parameters:', allParams);
+      console.log('Parameter keys:', Object.keys(allParams));
+      console.log('Parameter values:', Object.entries(allParams));
+      console.log('Amount from params:', allParams.amount);
+      console.log(
+        'Transaction_amount from params:',
+        allParams.transaction_amount,
+      );
+      console.log('Order_amount from params:', allParams.order_amount);
+      console.log('================================');
+
+      if (!collectRequestId) {
+        console.error('Missing EdvironCollectRequestId in callback');
+        throw new BadRequestException('EdvironCollectRequestId is required');
+      }
+
+      // Update transaction status based on callback
+      if (status === 'SUCCESS') {
+        console.log('Processing SUCCESS callback for:', collectRequestId);
+
+        try {
+          // First, try to find the order to get the original amount
+          const order =
+            await this.paymentsService.findOrderByCollectRequestId(
+              collectRequestId,
+            );
+          let fallbackAmount = 0;
+
+          if (order) {
+            console.log(
+              'Found order with original amount:',
+              order.order_amount,
+            );
+            fallbackAmount = order.order_amount || 0;
+          }
+
+          // Try to get amount from various possible field names, fallback to order amount
+          const transactionAmount =
+            parseFloat(allParams.amount) ||
+            parseFloat(allParams.transaction_amount) ||
+            parseFloat(allParams.order_amount) ||
+            parseFloat(allParams.total_amount) ||
+            fallbackAmount;
+
+          console.log('Determined transaction amount:', transactionAmount);
+          console.log('Used fallback amount from order:', fallbackAmount);
+
+          await this.transactionsService.updateTransactionStatusByCollectId(
+            collectRequestId,
+            'SUCCESS',
+            transactionAmount,
+            {
+              callback_received: true,
+              callback_time: new Date().toISOString(),
+              payment_details: {
+                EdvironCollectRequestId: allParams.EdvironCollectRequestId,
+                status: allParams.status,
+                amount: allParams.amount,
+                transaction_amount: allParams.transaction_amount,
+                order_amount: allParams.order_amount,
+                total_amount: allParams.total_amount,
+                callback_timestamp: new Date().toISOString(),
+                // Store all parameters for debugging
+                all_callback_params: allParams,
+              },
+            },
+          );
+          console.log('SUCCESS: Transaction status updated successfully');
+        } catch (updateError) {
+          console.error(
+            'ERROR: Failed to update transaction status:',
+            updateError.message,
+          );
+          console.error('Update error details:', updateError);
+
+          // Continue with success page even if update fails
+        }
+
+        // Redirect to dashboard with success status
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const successUrl = `${frontendUrl}/dashboard?message=Payment successful&collect_id=${collectRequestId}&status=success`;
+
+        return `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Payment Successful</title>
+              <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                .success { color: green; font-size: 24px; }
+                .details { margin: 20px 0; padding: 20px; background: #f0f8f0; border-radius: 8px; }
+              </style>
+            </head>
+            <body>
+              <h1 class="success">✅ Payment Successful!</h1>
+              <div class="details">
+                <p><strong>Collection Request ID:</strong> ${collectRequestId}</p>
+                <p><strong>Status:</strong> ${status}</p>
+                <p>Your payment has been processed successfully.</p>
+              </div>
+              <p>Redirecting to application...</p>
+              <script>
+                setTimeout(() => {
+                  window.location.href = '${successUrl}';
+                }, 3000);
+              </script>
+            </body>
+          </html>
+        `;
+      } else if (status === 'FAILED' || status === 'cancelled') {
+        console.log(`Processing ${status} payment for:`, collectRequestId);
+        console.log('Marking cancelled/failed payments as FAILED');
+
+        if (status === 'cancelled') {
+          console.log('Cancellation reason:', allParams.reason);
+          console.log('EDVIRON cancelled status -> marking as FAILED');
+        }
+
+        const order =
+          await this.paymentsService.findOrderByCollectRequestId(
+            collectRequestId,
+          );
+        const transactionAmount = 0;
+
+        const finalStatus = 'FAILED';
+
+        console.log(
+          `Final status classification: EDVIRON '${status}' -> '${finalStatus}'`,
+        );
+
+        await this.transactionsService.updateTransactionStatusByCollectId(
+          collectRequestId,
+          finalStatus,
+          transactionAmount,
+          {
+            callback_received: true,
+            callback_time: new Date().toISOString(),
+            payment_details: {
+              EdvironCollectRequestId: allParams.EdvironCollectRequestId,
+              original_edviron_status: status, // Keep original EDVIRON status
+              classified_status: finalStatus, // Our classified status
+              error_reason:
+                allParams.error_reason ||
+                allParams.reason ||
+                'Payment not completed',
+              reason: allParams.reason,
+              classification_logic:
+                'Both FAILED and cancelled from EDVIRON marked as FAILED',
+              callback_timestamp: new Date().toISOString(),
+            },
+          },
+        );
+
+        // Redirect to dashboard with failed status
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const failureReason = allParams.reason || 'Payment failed';
+        const failedUrl = `${frontendUrl}/dashboard?message=Payment ${status}&collect_id=${collectRequestId}&status=failed&reason=${encodeURIComponent(failureReason)}`;
+
+        return `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Payment Failed</title>
+              <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                .error { color: red; font-size: 24px; }
+                .details { margin: 20px 0; padding: 20px; background: #f8f0f0; border-radius: 8px; }
+              </style>
+            </head>
+            <body>
+              <h1 class="error">❌ Payment ${status === 'cancelled' ? 'Cancelled' : 'Failed'}</h1>
+              <div class="details">
+                <p><strong>Collection Request ID:</strong> ${collectRequestId}</p>
+                <p><strong>Status:</strong> ${status}</p>
+                ${allParams.reason ? `<p><strong>Reason:</strong> ${allParams.reason}</p>` : ''}
+                <p>Your payment could not be processed. Please try again.</p>
+              </div>
+              <p>Redirecting to dashboard...</p>
+              <script>
+                setTimeout(() => {
+                  window.location.href = '${failedUrl}';
+                }, 3000);
+              </script>
+            </body>
+          </html>
+        `;
+      } else {
+        // Handle other statuses (PENDING, etc.)
+        console.log(
+          `Processing other status '${status}' for:`,
+          collectRequestId,
+        );
+
+        let finalStatus = status.toUpperCase();
+        let statusMessage = status;
+        let statusColor = '#2196F3'; // Blue for info
+
+        // Classify the status
+        if (
+          status.toLowerCase().includes('pending') ||
+          status.toLowerCase().includes('processing')
+        ) {
+          finalStatus = 'PENDING';
+          statusMessage = 'Pending';
+          statusColor = '#FF9800'; // Orange for pending
+        } else {
+          // For any unknown status, default to CANCELLED
+          finalStatus = 'CANCELLED';
+          statusMessage = 'Cancelled';
+          statusColor = '#757575'; // Gray for cancelled
+        }
+
+        console.log(
+          `Other status classification: EDVIRON '${status}' -> '${finalStatus}'`,
+        );
+
+        // Update transaction status
+        await this.transactionsService.updateTransactionStatusByCollectId(
+          collectRequestId,
+          finalStatus,
+          0, // No transaction amount for non-successful payments
+          {
+            callback_received: true,
+            callback_time: new Date().toISOString(),
+            payment_details: {
+              EdvironCollectRequestId: allParams.EdvironCollectRequestId,
+              original_edviron_status: status,
+              classified_status: finalStatus,
+              status_message: statusMessage,
+              callback_timestamp: new Date().toISOString(),
+            },
+          },
+        );
+
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const statusUrl = `${frontendUrl}/dashboard?message=Payment ${statusMessage}&collect_id=${collectRequestId}&status=${finalStatus.toLowerCase()}`;
+
+        return `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Payment ${statusMessage}</title>
+              <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                .status { color: ${statusColor}; font-size: 24px; }
+                .details { margin: 20px 0; padding: 20px; background: #f5f5f5; border-radius: 8px; }
+              </style>
+            </head>
+            <body>
+              <h1 class="status">ℹ️ Payment ${statusMessage}</h1>
+              <div class="details">
+                <p><strong>Collection Request ID:</strong> ${collectRequestId}</p>
+                <p><strong>Status:</strong> ${finalStatus}</p>
+                <p>Your payment status has been updated.</p>
+              </div>
+              <p>Redirecting to dashboard...</p>
+              <script>
+                setTimeout(() => {
+                  window.location.href = '${statusUrl}';
+                }, 3000);
+              </script>
+            </body>
+          </html>
+        `;
+      }
+    } catch (error) {
+      console.error('Payment callback error:', error);
+
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const errorUrl = `${frontendUrl}/dashboard?message=Payment error&error=${encodeURIComponent(error.message)}`;
+
+      return `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Payment Error</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .error { color: red; font-size: 24px; }
+            </style>
+          </head>
+          <body>
+            <h1 class="error">❌ Payment Error</h1>
+            <p>There was an error processing your payment callback.</p>
+            <p>Error: ${error.message}</p>
+            <p>Redirecting to dashboard...</p>
+            <script>
+              setTimeout(() => {
+                window.location.href = '${errorUrl}';
+              }, 3000);
+            </script>
+          </body>
+        </html>
+      `;
+    }
+  }
+}

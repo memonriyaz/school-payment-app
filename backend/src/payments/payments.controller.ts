@@ -367,7 +367,7 @@ export class PaymentsController {
         // Redirect to dashboard with failed status
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const failureReason = allParams.reason || 'Payment failed';
-        const failedUrl = `${frontendUrl}/dashboard?message=Payment ${status}&collect_id=${collectRequestId}&status=failed&reason=${encodeURIComponent(failureReason)}`;
+        const failedUrl = `${frontendUrl}/?message=Payment ${status}&collect_id=${collectRequestId}&status=failed&reason=${encodeURIComponent(failureReason)}`;
 
         return `
           <!DOCTYPE html>

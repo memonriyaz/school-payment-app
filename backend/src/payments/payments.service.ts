@@ -57,8 +57,7 @@ export class PaymentsService {
       const pgSecret = this.configService.get<string>('PG_SECRET');
       const gatewayUrl = this.configService.get<string>('PAYMENT_GATEWAY_URL');
       const callbackUrl =
-        this.configService.get<string>('CALLBACK_URL') ||
-        'http://localhost:3000/api/payment-callback';
+        this.configService.get<string>('CALLBACK_URL')
 
       if (!apiKey || !pgSecret || !gatewayUrl) {
         throw new Error(
@@ -675,10 +674,7 @@ export class PaymentsService {
     }
   }
 
-  /**
-   * Force cancel abandoned payments with more aggressive logic
-   * This uses a simpler query that should work on all old records
-   */
+  
   async forceCancelAbandonedPayments(timeoutMinutes: number = 5) {
     try {
       this.logger.log(`=== FORCE CANCELLING ABANDONED PAYMENTS ===`);

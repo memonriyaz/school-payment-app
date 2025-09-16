@@ -11,6 +11,7 @@ async function bootstrap() {
   // Enable CORS
   app.enableCors({
     origin: [
+      'https://school-payment-app-delta.vercel.app',
       configService.get('FRONTEND_URL'),
       'http://localhost:3000',
       'http://localhost:5173',
@@ -26,7 +27,6 @@ async function bootstrap() {
       transform: true,
     }),
   );
-
 
   app.setGlobalPrefix('api');
 

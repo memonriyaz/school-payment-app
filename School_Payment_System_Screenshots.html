@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Payment System - Screenshots Documentation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            color: #333;
+            background-color: #fff;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            color: #1e40af;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #6b7280;
+            font-size: 1.2em;
+            margin: 0;
+        }
+        .section {
+            margin-bottom: 50px;
+            page-break-inside: avoid;
+        }
+        .section h2 {
+            color: #1e40af;
+            font-size: 1.8em;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        .screenshot-container {
+            margin-bottom: 40px;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+        .screenshot-container h3 {
+            color: #374151;
+            font-size: 1.4em;
+            margin-bottom: 15px;
+        }
+        .screenshot-placeholder {
+            border: 2px dashed #d1d5db;
+            background-color: #f9fafb;
+            padding: 60px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            color: #6b7280;
+            font-style: italic;
+        }
+        .description {
+            color: #6b7280;
+            font-style: italic;
+            margin-top: 15px;
+            font-size: 1.1em;
+        }
+        .feature-highlight {
+            background-color: #eff6ff;
+            border-left: 4px solid #2563eb;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .feature-highlight h3 {
+            color: #1e40af;
+            margin-top: 0;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        .feature-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 2px solid #e5e7eb;
+            color: #6b7280;
+        }
+        @media print {
+            body { margin: 20px; }
+            .section { page-break-before: always; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎓 School Payment System</h1>
+        <p>Screenshots Documentation - Complete Application Walkthrough</p>
+    </div>
+
+    <!-- Authentication System -->
+    <div class="section">
+        <h2>🔐 Authentication System</h2>
+        
+        <div class="screenshot-container">
+            <h3>Sign In Page</h3>
+            <div class="screenshot-placeholder">
+                [INSERT SCREENSHOT: signin.png]<br>
+                <strong>Sign in to your account interface</strong>
+            </div>
+            <p class="description">
+                Secure user authentication with email and password fields, featuring the "School Payment Dashboard" branding and clean, professional design.
+            </p>
+        </div>
+
+        <div class="screenshot-container">
+            <h3>User Registration</h3>
+            <div class="screenshot-placeholder">
+                [INSERT SCREENSHOT: register.png]<br>
+                <strong>Create your account interface</strong>
+            </div>
+            <p class="description">
+                New user registration form with comprehensive validation including full name, email, password, and confirm password fields with clear navigation links.
+            </p>
+        </div>
+    </div>
+
+    <!-- Dashboard & Navigation -->
+    <div class="section">
+        <h2>📊 Dashboard & Navigation</h2>
+        
+        <div class="screenshot-container">
+            <h3>All Transactions Overview</h3>
+            <div class="screenshot-placeholder">
+                [INSERT SCREENSHOT: all-transactions.png]<br>
+                <strong>Comprehensive transaction management dashboard</strong>
+            </div>
+            <p class="description">
+                Complete view of all payment transactions with advanced filtering options (Status, School ID, Gateway), sorting capabilities, and comprehensive transaction details including collect IDs, amounts, and status badges.
+            </p>
+        </div>
+
+        <div class="screenshot-container">
+            <h3>Transactions by School</h3>
+            <div class="screenshot-placeholder">
+                [INSERT SCREENSHOT: transactions-by-school.png]<br>
+                <strong>School-specific transaction filtering</strong>
+            </div>
+            <p class="description">
+                School-specific transaction filtering interface with manual school ID input and quick selection buttons for common school IDs, enabling efficient school-wise analytics.
+            </p>
+        </div>
+    </div>
+
+    <!-- Payment Processing & Gateway Integration -->
+    <div class="section">
+        <h2>💳 Payment Processing & Gateway Integration</h2>
+        
+        <div class="screenshot-container">
+            <h3>Transaction Status Check</h3>
+            <div class="screenshot-placeholder">
+                [INSERT SCREENSHOT: status-check.png]<br>
+                <strong>Payment status lookup interface</strong>
+            </div>
+            <p class="description">
+                Real-time payment status checking system allowing users to track transaction status using custom order IDs, with example references provided for user guidance.
+            </p>
+        </div>
+
+        <div class="screenshot-container">
+            <h3>Payment Creation Success</h3>
+            <div class="screenshot-placeholder">
+                [INSERT SCREENSHOT: payment-success.png]<br>
+                <strong>Payment confirmation with gateway redirect</strong>
+            </div>
+            <p class="description">
+                Payment request creation confirmation showing payment details (student information, amount, description) with automated redirect to payment gateway and manual redirect option.
+            </p>
+        </div>
+
+        <div class="screenshot-container">
+            <h3>EDVIRON Payment Gateway</h3>
+            <div class="screenshot-placeholder">
+                [INSERT SCREENSHOT: payment-gateway.png]<br>
+                <strong>Multi-option payment interface</strong>
+            </div>
+            <p class="description">
+                Comprehensive EDVIRON payment gateway interface offering multiple payment options including UPI with QR code, Credit/Debit cards, Net Banking, Digital Wallets, Pay Later options, and Cardless EMI solutions.
+            </p>
+        </div>
+
+        <div class="screenshot-container">
+            <h3>Payment Gateway Simulator</h3>
+            <div class="screenshot-placeholder">
+                [INSERT SCREENSHOT: payment-simulator.png]<br>
+                <strong>Testing environment for payment scenarios</strong>
+            </div>
+            <p class="description">
+                Built-in payment simulation environment for testing different payment scenarios with debit card simulation, OTP verification, and multiple status options (SUCCESS, PENDING, USER_DROPPED, FAILED).
+            </p>
+        </div>
+
+        <div class="screenshot-container">
+            <h3>Payment Completion</h3>
+            <div class="screenshot-placeholder">
+                [INSERT SCREENSHOT: payment-complete.png]<br>
+                <strong>Final payment confirmation</strong>
+            </div>
+            <p class="description">
+                Final payment success confirmation displaying the Collection Request ID, payment status verification, and automatic redirect notification back to the application.
+            </p>
+        </div>
+    </div>
+
+    <!-- Key Features Summary -->
+    <div class="feature-highlight">
+        <h3>🌟 Key Features Demonstrated</h3>
+        <ul class="feature-list">
+            <li><strong>Secure Authentication:</strong> JWT-based login system with comprehensive form validation</li>
+            <li><strong>Real-time Dashboard:</strong> Live transaction monitoring with advanced filtering and status indicators</li>
+            <li><strong>School Management:</strong> School-specific transaction filtering and analytics with quick selection</li>
+            <li><strong>Complete Payment Flow:</strong> End-to-end EDVIRON gateway integration with multiple payment options</li>
+            <li><strong>Status Tracking:</strong> Real-time payment status checking with custom order ID lookup</li>
+            <li><strong>Payment Simulation:</strong> Built-in testing environment for different payment scenarios</li>
+            <li><strong>Responsive Design:</strong> Mobile-first design with modern UI/UX across all devices</li>
+            <li><strong>User Experience:</strong> Intuitive navigation with clear status feedback and automated redirects</li>
+        </ul>
+    </div>
+
+    <!-- Technical Architecture -->
+    <div class="section">
+        <h2>🏗️ Technical Implementation</h2>
+        <div style="background-color: #f8fafc; padding: 25px; border-radius: 8px; border-left: 4px solid #10b981;">
+            <h3 style="color: #065f46; margin-top: 0;">Technology Stack</h3>
+            <p><strong>Frontend:</strong> React + TypeScript, Tailwind CSS, Vite</p>
+            <p><strong>Backend:</strong> NestJS, MongoDB, JWT Authentication</p>
+            <p><strong>Payment Gateway:</strong> EDVIRON Integration with webhook support</p>
+            <p><strong>Features:</strong> Real-time status tracking, automated payment lifecycle management, comprehensive transaction analytics</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p><strong>School Payment System</strong> - Complete Payment Management Solution</p>
+        <p>Built with modern web technologies for educational institutions</p>
+    </div>
+</body>
+</html>

@@ -30,6 +30,23 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  // Add root endpoint handler
+  app.use('/', (req, res, next) => {
+    if (req.url === '/') {
+      res.json({
+        message: 'School Payment System API is working successfully! 🎓',
+        status: 'active',
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        apiEndpoint: '/api',
+        documentation: 'Visit /api for detailed endpoint information',
+        frontend: configService.get('FRONTEND_URL') || 'https://school-payment-app-delta.vercel.app'
+      });
+    } else {
+      next();
+    }
+  });
+
   const port = configService.get('PORT') || 3000;
   await app.listen(port);
 

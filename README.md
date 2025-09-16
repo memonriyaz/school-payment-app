@@ -8,6 +8,77 @@ A modern, full-stack payment management system for educational institutions buil
 ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=flat-square&logo=mongodb&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)
 
+## 📸 Screenshots
+
+### Authentication System
+
+<div align="center">
+
+#### Sign In Page
+![Sign In Page](./screenshots/signin.png)
+*Secure user authentication with email and password*
+
+#### User Registration
+![User Registration](./screenshots/register.png)
+*New user registration with form validation*
+
+</div>
+
+### Dashboard & Navigation
+
+<div align="center">
+
+#### All Transactions Overview
+![All Transactions](./screenshots/all-transactions.png)
+*Comprehensive view of all payment transactions with advanced filtering and sorting*
+
+#### Transactions by School
+![Transactions by School](./screenshots/transactions-by-school.png)
+*School-specific transaction filtering with quick selection options*
+
+</div>
+
+### Payment Processing & Gateway Integration
+
+<div align="center">
+
+#### Transaction Status Check
+![Transaction Status Check](./screenshots/status-check.png)
+*Check payment status using custom order ID with example references*
+
+#### Payment Creation
+![Transaction Status Check](./screenshots/create-payment.png)
+*Fill the payment details and student details*
+
+#### Payment Creation Success
+![Payment Success](./screenshots/payment-success.png)
+*Payment confirmation with automated redirect to payment gateway*
+
+#### EDVIRON Payment Gateway
+![Payment Gateway](./screenshots/payment-gateway.png)
+*Multi-option payment interface with UPI, Cards, Net Banking, Wallets, and EMI options*
+
+#### Payment Gateway Simulator
+![Payment Simulator](./screenshots/payment-simulator.png)
+*Payment testing environment with multiple status simulation options*
+
+#### Payment Completion
+![Payment Complete](./screenshots/payment-complete.png)
+*Final payment confirmation with collection request ID and redirect notice*
+
+</div>
+
+### Key Features Highlighted
+
+- **🔐 Secure Authentication**: JWT-based login system with comprehensive form validation
+- **📊 Real-time Dashboard**: Live transaction monitoring with advanced filtering and status indicators
+- **🏫 School Management**: School-specific transaction filtering and analytics with quick selection
+- **💳 Complete Payment Flow**: End-to-end EDVIRON gateway integration with multiple payment options
+- **🔍 Status Tracking**: Real-time payment status checking with custom order ID lookup
+- **🎮 Payment Simulation**: Built-in testing environment for different payment scenarios
+- **📱 Responsive Design**: Mobile-first design with modern UI/UX across all devices
+- **🎯 User Experience**: Intuitive navigation with clear status feedback and automated redirects
+
 ## 🌟 Features
 
 ### 💳 Payment Processing

@@ -55,15 +55,15 @@ A modern, full-stack payment management system for educational institutions buil
 *Payment confirmation with automated redirect to payment gateway*
 
 #### EDVIRON Payment Gateway
-![Payment Gateway](./screenshots/payment-gateway.png)
+![Payment Gateway](./screenshots/payment-gateway.png) <br>
 *Multi-option payment interface with UPI, Cards, Net Banking, Wallets, and EMI options*
 
 #### Payment Gateway Simulator
-![Payment Simulator](./screenshots/payment-simulator.png)
+![Payment Simulator](./screenshots/payment-simulator.png) <br>
 *Payment testing environment with multiple status simulation options*
 
 #### Payment Completion
-![Payment Complete](./screenshots/payment-complete.png)
+![Payment Complete](./screenshots/payment-complete.png) <br>
 *Final payment confirmation with collection request ID and redirect notice*
 
 </div>

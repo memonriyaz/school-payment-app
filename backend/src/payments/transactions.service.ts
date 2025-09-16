@@ -7,7 +7,6 @@ import {
   OrderStatusDocument,
 } from '../schemas/order-status.schema';
 
-// Payment Status Classification
 export enum PaymentStatusCategory {
   PENDING = 'PENDING',
   SUCCESS = 'SUCCESS',
@@ -15,7 +14,6 @@ export enum PaymentStatusCategory {
   CANCELLED = 'CANCELLED',
 }
 
-// Helper function to classify payment statuses
 export function classifyPaymentStatus(
   rawStatus: string,
 ): PaymentStatusCategory {
@@ -23,23 +21,17 @@ export function classifyPaymentStatus(
 
   const status = rawStatus.toUpperCase();
 
-  console.log(
-    `[STATUS_CLASSIFICATION] Raw: "${rawStatus}" → Normalized: "${status}"`,
-  );
-
   switch (status) {
     case 'SUCCESS':
     case 'SUCCESSFUL':
     case 'COMPLETED':
     case 'PAID':
-      console.log(`[STATUS_CLASSIFICATION] "${rawStatus}" → SUCCESS`);
       return PaymentStatusCategory.SUCCESS;
 
     case 'FAILED':
     case 'FAILURE':
     case 'FAILED_PAYMENT':
     case 'ERROR':
-      console.log(`[STATUS_CLASSIFICATION] "${rawStatus}" → FAILED`);
       return PaymentStatusCategory.FAILED;
 
     case 'CANCELLED':
@@ -51,7 +43,6 @@ export function classifyPaymentStatus(
     case 'DROPPED':
     case 'ABANDONED':
     case 'TIMEOUT':
-      console.log(`[STATUS_CLASSIFICATION] "${rawStatus}" → CANCELLED`);
       return PaymentStatusCategory.CANCELLED;
 
     case 'PENDING':
@@ -60,13 +51,9 @@ export function classifyPaymentStatus(
     case 'IN_PROGRESS':
     case 'AWAITING_PAYMENT':
     case 'RETRY_CREATED':
-      console.log(
-        `[STATUS_CLASSIFICATION] "${rawStatus}" → PENDING (explicit)`,
-      );
+      return PaymentStatusCategory.PENDING;
+
     default:
-      console.log(
-        `[STATUS_CLASSIFICATION] "${rawStatus}" → PENDING (default/unknown)`,
-      );
       return PaymentStatusCategory.PENDING;
   }
 }
@@ -79,6 +66,7 @@ interface TransactionQueryParams {
   status?: string;
   schoolId?: string;
   gateway?: string;
+  userId?: string; // Add userId parameter
 }
 
 @Injectable()
@@ -101,27 +89,35 @@ export class TransactionsService {
         status,
         schoolId,
         gateway,
+        userId,
       } = params;
       const skip = (page - 1) * limit;
 
-      // Build match conditions
-      const matchConditions: any = {};
-      if (status) {
-        matchConditions['orderStatus.status'] = status;
+      const initialMatchConditions: any = {};
+      const postLookupMatchConditions: any = {};
+      
+      if (userId) {
+        initialMatchConditions['trustee_id'] = userId.toString();
       }
+      
       if (schoolId) {
-        matchConditions['order.school_id'] = schoolId;
+        initialMatchConditions['school_id'] = schoolId;
       }
       if (gateway) {
-        matchConditions['order.gateway_name'] = gateway;
+        initialMatchConditions['gateway_name'] = gateway;
+      }
+      
+      if (status) {
+        postLookupMatchConditions['orderStatus.status'] = status;
       }
 
-      // Build sort object
       const sortObj: any = {};
       sortObj[sort] = order === 'desc' ? -1 : 1;
 
-      // Aggregation pipeline to join Order and OrderStatus
       const pipeline = [
+        ...(Object.keys(initialMatchConditions).length > 0
+          ? [{ $match: initialMatchConditions }]
+          : []),
         {
           $lookup: {
             from: 'orderstatuses',
@@ -136,6 +132,9 @@ export class TransactionsService {
             preserveNullAndEmptyArrays: false,
           },
         },
+        ...(Object.keys(postLookupMatchConditions).length > 0
+          ? [{ $match: postLookupMatchConditions }]
+          : []),
         {
           $addFields: {
             order: '$$ROOT',
@@ -145,16 +144,13 @@ export class TransactionsService {
             order_amount: '$orderStatus.order_amount',
             transaction_amount: '$orderStatus.transaction_amount',
             status: '$orderStatus.status',
-            raw_status: '$orderStatus.status', // Keep original status
+            raw_status: '$orderStatus.status',
             custom_order_id: '$custom_order_id',
             payment_time: '$orderStatus.payment_time',
             payment_mode: '$orderStatus.payment_mode',
             createdAt: '$createdAt',
           },
         },
-        ...(Object.keys(matchConditions).length > 0
-          ? [{ $match: matchConditions }]
-          : []),
         { $sort: sortObj },
         {
           $facet: {
@@ -187,7 +183,6 @@ export class TransactionsService {
       const result = await this.orderModel.aggregate(pipeline as any).exec();
 
       const rawData = result[0]?.data || [];
-      // Classify payment statuses
       const data = rawData.map((transaction) => ({
         ...transaction,
         status_category: classifyPaymentStatus(transaction.status),
@@ -218,14 +213,19 @@ export class TransactionsService {
 
   async getTransactionsBySchool(
     schoolId: string,
-    params: { page: number; limit: number },
+    params: { page: number; limit: number; userId?: string },
   ) {
     try {
-      const { page, limit } = params;
+      const { page, limit, userId } = params;
       const skip = (page - 1) * limit;
 
+      const matchConditions: any = { school_id: schoolId };
+      if (userId) {
+        matchConditions.trustee_id = userId.toString();
+      }
+
       const pipeline = [
-        { $match: { school_id: schoolId } },
+        { $match: matchConditions },
         {
           $lookup: {
             from: 'orderstatuses',
@@ -271,7 +271,6 @@ export class TransactionsService {
       const result = await this.orderModel.aggregate(pipeline as any).exec();
 
       const rawData = result[0]?.data || [];
-      // Classify payment statuses
       const data = rawData.map((transaction) => ({
         ...transaction,
         status_category: classifyPaymentStatus(transaction.status),
@@ -300,10 +299,15 @@ export class TransactionsService {
     }
   }
 
-  async getTransactionStatus(customOrderId: string) {
+  async getTransactionStatus(customOrderId: string, userId?: string) {
     try {
+      const matchConditions: any = { custom_order_id: customOrderId };
+      if (userId) {
+        matchConditions.trustee_id = userId;
+      }
+      
       const order = await this.orderModel
-        .findOne({ custom_order_id: customOrderId })
+        .findOne(matchConditions)
         .exec();
 
       if (!order) {
@@ -490,12 +494,6 @@ export class TransactionsService {
     additionalData?: any,
   ) {
     try {
-      this.logger.log(`=== UPDATING TRANSACTION STATUS ===`);
-      this.logger.log(`Collect Request ID: ${collectRequestId}`);
-      this.logger.log(`New Status: ${status}`);
-      this.logger.log(`Transaction Amount: ${transactionAmount}`);
-
-      // Find the order by gateway_reference_id (which stores the collect_request_id from EDVIRON)
       let order = await this.orderModel
         .findOne({
           gateway_reference_id: collectRequestId,
@@ -503,125 +501,62 @@ export class TransactionsService {
         .exec();
 
       if (!order) {
-        this.logger.warn(
-          `Order with gateway_reference_id '${collectRequestId}' not found`,
-        );
-
-        // Log recent orders to help debug
-        const recentOrders = await this.orderModel
-          .find({})
-          .select('custom_order_id gateway_reference_id _id createdAt')
+        const recentPendingStatus = await this.orderStatusModel
+          .findOne({
+            status: 'PENDING',
+            order_amount:
+              transactionAmount > 0 ? transactionAmount : { $exists: true },
+          })
           .sort({ createdAt: -1 })
-          .limit(5)
           .exec();
 
-        this.logger.log(
-          'Recent orders:',
-          recentOrders.map((o) => ({
-            _id: o._id,
-            custom_order_id: o.custom_order_id,
-            gateway_reference_id: (o as any).gateway_reference_id,
-            createdAt: (o as any).createdAt,
-          })),
-        );
+        if (recentPendingStatus) {
+          const updateData: any = {
+            status,
+            transaction_amount: transactionAmount,
+            updatedAt: new Date(),
+          };
 
-        // TEMPORARY FIX: Try to update status by finding a matching OrderStatus record
-        this.logger.warn(
-          'Attempting fallback: updating status without order reference',
-        );
-
-        try {
-          // Find the most recent PENDING status that might match this payment
-          const recentPendingStatus = await this.orderStatusModel
-            .findOne({
-              status: 'PENDING',
-              order_amount:
-                transactionAmount > 0 ? transactionAmount : { $exists: true },
-            })
-            .sort({ createdAt: -1 })
-            .exec();
-
-          if (recentPendingStatus) {
-            this.logger.log(
-              `Found recent pending status: ${recentPendingStatus._id}`,
-            );
-
-            const updateData: any = {
-              status,
-              transaction_amount: transactionAmount,
-              updatedAt: new Date(),
-            };
-
-            if (additionalData) {
-              if (additionalData.callback_received)
-                updateData.callback_received = additionalData.callback_received;
-              if (additionalData.callback_time)
-                updateData.callback_time = additionalData.callback_time;
-              if (additionalData.payment_details) {
-                this.logger.log(
-                  `[FALLBACK] Setting payment_details:`,
-                  additionalData.payment_details,
-                );
-                this.logger.log(
-                  `[FALLBACK] Type of payment_details:`,
-                  typeof additionalData.payment_details,
-                );
-
-                // Ensure payment_details is properly handled as an object
-                try {
-                  if (typeof additionalData.payment_details === 'string') {
-                    // If it's a string, try to parse it as JSON
-                    updateData.payment_details = JSON.parse(
-                      additionalData.payment_details,
-                    );
-                  } else if (
-                    typeof additionalData.payment_details === 'object'
-                  ) {
-                    // If it's already an object, use it directly
-                    updateData.payment_details = additionalData.payment_details;
-                  } else {
-                    // For any other type, convert to string representation
-                    updateData.payment_details = {
-                      raw: String(additionalData.payment_details),
-                    };
-                  }
-
-                  this.logger.log(
-                    `[FALLBACK] Final payment_details object:`,
-                    updateData.payment_details,
+          if (additionalData) {
+            if (additionalData.callback_received)
+              updateData.callback_received = additionalData.callback_received;
+            if (additionalData.callback_time)
+              updateData.callback_time = additionalData.callback_time;
+            if (additionalData.payment_details) {
+              try {
+                if (typeof additionalData.payment_details === 'string') {
+                  updateData.payment_details = JSON.parse(
+                    additionalData.payment_details,
                   );
-                } catch (parseError) {
-                  this.logger.warn(
-                    `[FALLBACK] Failed to parse payment_details as JSON: ${parseError.message}`,
-                  );
-                  // Fallback: wrap the raw value in an object
+                } else if (
+                  typeof additionalData.payment_details === 'object'
+                ) {
+                  updateData.payment_details = additionalData.payment_details;
+                } else {
                   updateData.payment_details = {
-                    raw: additionalData.payment_details,
+                    raw: String(additionalData.payment_details),
                   };
                 }
+              } catch (parseError) {
+                this.logger.warn(
+                  `Failed to parse payment_details: ${parseError.message}`,
+                );
+                updateData.payment_details = {
+                  raw: additionalData.payment_details,
+                };
               }
             }
-
-            const updatedStatus = await this.orderStatusModel
-              .findByIdAndUpdate(recentPendingStatus._id, updateData, {
-                new: true,
-              })
-              .exec();
-
-            if (updatedStatus) {
-              this.logger.log(
-                `FALLBACK SUCCESS: Updated status ${updatedStatus._id} to ${status}`,
-              );
-              return updatedStatus;
-            } else {
-              this.logger.error(
-                'FALLBACK FAILED: Updated status returned null',
-              );
-              throw new Error('Failed to update order status');
-            }
           }
-        } catch (fallbackError) {
-          this.logger.error('Fallback update failed:', fallbackError.message);
+
+          const updatedStatus = await this.orderStatusModel
+            .findByIdAndUpdate(recentPendingStatus._id, updateData, {
+              new: true,
+            })
+            .exec();
+
+          if (updatedStatus) {
+            return updatedStatus;
+          }
         }
 
         throw new NotFoundException(
@@ -629,13 +564,6 @@ export class TransactionsService {
         );
       }
 
-      this.logger.log(`Found matching order: ${order._id}`);
-      this.logger.log(`Order custom_order_id: ${order.custom_order_id}`);
-      this.logger.log(
-        `Order gateway_reference_id: ${(order as any).gateway_reference_id}`,
-      );
-
-      // Update the order status directly using the order's ObjectId
       const updateData: any = {
         status,
         transaction_amount: transactionAmount,
@@ -658,41 +586,22 @@ export class TransactionsService {
         if (additionalData.callback_time)
           updateData.callback_time = additionalData.callback_time;
         if (additionalData.payment_details) {
-          this.logger.log(
-            `Setting payment_details:`,
-            additionalData.payment_details,
-          );
-          this.logger.log(
-            `Type of payment_details:`,
-            typeof additionalData.payment_details,
-          );
-
-          // Ensure payment_details is properly handled as an object
           try {
             if (typeof additionalData.payment_details === 'string') {
-              // If it's a string, try to parse it as JSON
               updateData.payment_details = JSON.parse(
                 additionalData.payment_details,
               );
             } else if (typeof additionalData.payment_details === 'object') {
-              // If it's already an object, use it directly
               updateData.payment_details = additionalData.payment_details;
             } else {
-              // For any other type, convert to string representation
               updateData.payment_details = {
                 raw: String(additionalData.payment_details),
               };
             }
-
-            this.logger.log(
-              `Final payment_details object:`,
-              updateData.payment_details,
-            );
           } catch (parseError) {
             this.logger.warn(
-              `Failed to parse payment_details as JSON: ${parseError.message}`,
+              `Failed to parse payment_details: ${parseError.message}`,
             );
-            // Fallback: wrap the raw value in an object
             updateData.payment_details = {
               raw: additionalData.payment_details,
             };
@@ -708,25 +617,15 @@ export class TransactionsService {
         .exec();
 
       if (updatedStatus) {
-        this.logger.log(`Transaction status updated successfully:`);
-        this.logger.log(`- Order ID: ${order._id}`);
-        this.logger.log(`- New Status: ${updatedStatus.status}`);
-        this.logger.log(
-          `- Transaction Amount: ${updatedStatus.transaction_amount}`,
-        );
-
         return updatedStatus;
       } else {
-        this.logger.error(
-          `Failed to update order status for order ${order._id}`,
-        );
         throw new Error('Failed to update order status');
       }
     } catch (error) {
-      this.logger.error(`ERROR updating transaction status:`);
-      this.logger.error(`- Collect Request ID: ${collectRequestId}`);
-      this.logger.error(`- Error Message: ${error.message}`);
-      this.logger.error(`- Stack Trace: ${error.stack}`);
+      this.logger.error(
+        `Error updating transaction status for ${collectRequestId}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

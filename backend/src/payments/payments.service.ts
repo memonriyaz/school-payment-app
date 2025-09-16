@@ -33,6 +33,7 @@ export class PaymentsService {
       const customOrderId = `ORD_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
       // Create order in database
+      
       const order = new this.orderModel({
         school_id: paymentData.school_id,
         trustee_id: paymentData.trustee_id,
@@ -41,7 +42,7 @@ export class PaymentsService {
         custom_order_id: customOrderId,
       });
 
-      await order.save();
+      const savedOrder = await order.save();
 
       // Create initial order status
       const orderStatus = new this.orderStatusModel({

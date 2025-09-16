@@ -5,13 +5,10 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: {
-    historyApiFallback: true,
+    host: true,
+    port: 5173,
   },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: undefined,
-      },
-    },
+  preview: {
+    port: 4173,
   },
 });

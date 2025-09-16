@@ -76,7 +76,7 @@ const MakePayment: React.FC = () => {
     try {
       // Use EDVIRON endpoint
       const API_URL = import.meta.env.VITE_API_URL;
-      const endpoint = `${API_URL}api/create-payment`;
+      const endpoint = `${API_URL}/create-payment`;
 
       console.log(`Creating ${formData.gateway_name} payment with data:`, {
         ...formData,

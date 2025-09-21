@@ -15,12 +15,14 @@ A modern, full-stack payment management system for educational institutions buil
 <div align="center">
 
 #### Sign In Page
+
 ![Sign In Page](./screenshots/signin.png) \n
-*Secure user authentication with email and password*
+_Secure user authentication with email and password_
 
 #### User Registration
-![User Registration](./screenshots/register.png)  \n
-*New user registration with form validation*
+
+![User Registration](./screenshots/register.png) \n
+_New user registration with form validation_
 
 </div>
 
@@ -29,12 +31,14 @@ A modern, full-stack payment management system for educational institutions buil
 <div align="center">
 
 #### All Transactions Overview
+
 ![All Transactions](./screenshots/all-transactions.png)
-*Comprehensive view of all payment transactions with advanced filtering and sorting*
+_Comprehensive view of all payment transactions with advanced filtering and sorting_
 
 #### Transactions by School
+
 ![Transactions by School](./screenshots/transactions-by-school.png)
-*School-specific transaction filtering with quick selection options*
+_School-specific transaction filtering with quick selection options_
 
 </div>
 
@@ -43,28 +47,34 @@ A modern, full-stack payment management system for educational institutions buil
 <div align="center">
 
 #### Transaction Status Check
+
 ![Transaction Status Check](./screenshots/status-check.png)
-*Check payment status using custom order ID with example references*
+_Check payment status using custom order ID with example references_
 
 #### Payment Creation
+
 ![Transaction Status Check](./screenshots/create-payment.png)
-*Fill the payment details and student details*
+_Fill the payment details and student details_
 
 #### Payment Creation Success
+
 ![Payment Success](./screenshots/payment-success.png)
-*Payment confirmation with automated redirect to payment gateway*
+_Payment confirmation with automated redirect to payment gateway_
 
 #### EDVIRON Payment Gateway
+
 ![Payment Gateway](./screenshots/payment-gateway.png) <br>
-*Multi-option payment interface with UPI, Cards, Net Banking, Wallets, and EMI options*
+_Multi-option payment interface with UPI, Cards, Net Banking, Wallets, and EMI options_
 
 #### Payment Gateway Simulator
+
 ![Payment Simulator](./screenshots/payment-simulator.png) <br>
-*Payment testing environment with multiple status simulation options*
+_Payment testing environment with multiple status simulation options_
 
 #### Payment Completion
+
 ![Payment Complete](./screenshots/payment-complete.png) <br>
-*Final payment confirmation with collection request ID and redirect notice*
+_Final payment confirmation with collection request ID and redirect notice_
 
 </div>
 
@@ -82,24 +92,28 @@ A modern, full-stack payment management system for educational institutions buil
 ## 🌟 Features
 
 ### 💳 Payment Processing
+
 - **EDVIRON Gateway Integration**: Secure payment processing with JWT-based API authentication
 - **Real-time Transaction Tracking**: Live status updates with comprehensive payment lifecycle management
 - **Multiple Payment Status Classifications**: PENDING, SUCCESS, FAILED, CANCELLED with intelligent status mapping
 - **Automated Payment Callbacks**: Seamless webhook handling for payment status updates
 
 ### 🔐 Security & Authentication
+
 - **JWT-based Authentication**: Secure user sessions with configurable token expiration
 - **Password Encryption**: bcryptjs hashing with salt rounds
 - **Data Isolation**: User-specific transaction filtering ensures privacy
 - **Input Validation**: Comprehensive validation using class-validator and DTOs
 
 ### 📊 Dashboard & Analytics
+
 - **Transaction Overview**: Complete payment history with advanced filtering
 - **School-wise Reports**: Detailed transaction analytics per educational institution
 - **Payment Status Tracking**: Real-time status monitoring with visual indicators
 - **Responsive Design**: Mobile-first design with Tailwind CSS
 
 ### ⚙️ Automated Management
+
 - **Scheduled Payment Cleanup**: Automated cancellation of abandoned payments
   - Every 10 minutes: Cancel payments pending for 30+ minutes
   - Daily at 2 AM: Clean up very old pending payments (24+ hours)
@@ -172,11 +186,11 @@ school-payment-app/
    ```bash
    cd backend
    npm install
-   
+
    # Configure environment variables
    cp .env.example .env
    # Edit .env with your MongoDB URI, JWT secret, and EDVIRON credentials
-   
+
    # Start development server
    npm run start:dev
    ```
@@ -186,10 +200,10 @@ school-payment-app/
    ```bash
    cd ../frontend
    npm install
-   
+
    # Configure environment variables
    echo "VITE_API_URL=http://localhost:3000/api" > .env
-   
+
    # Start development server
    npm run dev
    ```
@@ -243,12 +257,13 @@ VITE_PAYMENT_TIMEOUT=300000
 
 ### Authentication Endpoints
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|--------------|
-| `POST` | `/api/auth/register` | Register new user | ❌ |
-| `POST` | `/api/auth/login` | User authentication | ❌ |
+| Method | Endpoint             | Description         | Auth Required |
+| ------ | -------------------- | ------------------- | ------------- |
+| `POST` | `/api/auth/register` | Register new user   | ❌            |
+| `POST` | `/api/auth/login`    | User authentication | ❌            |
 
 **Registration Request:**
+
 ```json
 {
   "email": "user@school.edu",
@@ -258,6 +273,7 @@ VITE_PAYMENT_TIMEOUT=300000
 ```
 
 **Login Request:**
+
 ```json
 {
   "email": "user@school.edu",
@@ -267,14 +283,15 @@ VITE_PAYMENT_TIMEOUT=300000
 
 ### Payment Endpoints
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|--------------|
-| `POST` | `/api/create-payment` | Create new payment request | ✅ |
-| `POST` | `/api/webhook` | EDVIRON webhook handler | ❌ |
-| `GET` | `/api/payment-callback` | EDVIRON callback handler | ❌ |
-| `GET` | `/api/payment-status/:collectRequestId` | Check payment status | ✅ |
+| Method | Endpoint                                | Description                | Auth Required |
+| ------ | --------------------------------------- | -------------------------- | ------------- |
+| `POST` | `/api/create-payment`                   | Create new payment request | ✅            |
+| `POST` | `/api/webhook`                          | EDVIRON webhook handler    | ❌            |
+| `GET`  | `/api/payment-callback`                 | EDVIRON callback handler   | ❌            |
+| `GET`  | `/api/payment-status/:collectRequestId` | Check payment status       | ✅            |
 
 **Create Payment Request:**
+
 ```json
 {
   "school_id": "65b0e6293e9f76a9694d84b4",
@@ -283,7 +300,7 @@ VITE_PAYMENT_TIMEOUT=300000
     "id": "STU123456",
     "email": "jane.smith@student.school.edu"
   },
-  "amount": 1500.00,
+  "amount": 1500.0,
   "description": "Semester fee payment",
   "gateway_name": "edviron"
 }
@@ -291,13 +308,14 @@ VITE_PAYMENT_TIMEOUT=300000
 
 ### Transaction Endpoints
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|--------------|
-| `GET` | `/api/transactions` | Get user transactions with filtering | ✅ |
-| `GET` | `/api/transactions/school/:schoolId` | Get school-specific transactions | ✅ |
-| `GET` | `/api/transaction-status/:customOrderId` | Get specific transaction status | ✅ |
+| Method | Endpoint                                 | Description                          | Auth Required |
+| ------ | ---------------------------------------- | ------------------------------------ | ------------- |
+| `GET`  | `/api/transactions`                      | Get user transactions with filtering | ✅            |
+| `GET`  | `/api/transactions/school/:schoolId`     | Get school-specific transactions     | ✅            |
+| `GET`  | `/api/transaction-status/:customOrderId` | Get specific transaction status      | ✅            |
 
 **Transaction Query Parameters:**
+
 - `page`: Page number (default: 1)
 - `limit`: Results per page (default: 10)
 - `sort`: Sort field (default: 'createdAt')
@@ -308,11 +326,11 @@ VITE_PAYMENT_TIMEOUT=300000
 
 ### Management Endpoints
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|--------------|
-| `POST` | `/api/cancel-abandoned-payments` | Cancel old pending payments | ✅ |
-| `POST` | `/api/cancel-payment/:customOrderId` | Cancel specific payment | ✅ |
-| `POST` | `/api/trigger-scheduler` | Manually trigger payment cleanup | ✅ |
+| Method | Endpoint                             | Description                      | Auth Required |
+| ------ | ------------------------------------ | -------------------------------- | ------------- |
+| `POST` | `/api/cancel-abandoned-payments`     | Cancel old pending payments      | ✅            |
+| `POST` | `/api/cancel-payment/:customOrderId` | Cancel specific payment          | ✅            |
+| `POST` | `/api/trigger-scheduler`             | Manually trigger payment cleanup | ✅            |
 
 ## 🔄 Payment Status Flow
 
@@ -354,4 +372,3 @@ PORT=3000
 VITE_API_URL=https://yourdomain.com/api
 VITE_APP_TITLE="School Payment System"
 ```
-

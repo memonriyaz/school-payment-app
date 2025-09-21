@@ -7,17 +7,11 @@ export class PaymentSchedulerService {
   private readonly logger = new Logger(PaymentSchedulerService.name);
 
   constructor(private paymentsService: PaymentsService) {
-    this.logger.log(
-      'PaymentSchedulerService initialized - automatic payment cleanup is enabled',
-    );
+    this.logger.log('PaymentSchedulerService initialized - automatic payment cleanup is enabled');
     this.logger.log('Schedule: Every 10 minutes for 30+ minute old payments');
     this.logger.log('Schedule: Daily at 2 AM for 24+ hour old payments');
   }
 
-  /**
-   * Run every 10 minutes to check for abandoned payments
-   * This will cancel payments that have been PENDING for more than 30 minutes
-   */
   @Cron(CronExpression.EVERY_10_MINUTES)
   async handleAbandonedPayments() {
     try {
@@ -45,9 +39,7 @@ export class PaymentSchedulerService {
   async handleVeryOldAbandonedPayments() {
     try {
       this.logger.log('=== DAILY PAYMENT CLEANUP ===');
-      this.logger.log(
-        'Running daily cleanup for very old abandoned payments...',
-      );
+      this.logger.log('Running daily cleanup for very old abandoned payments...');
 
       const result = await this.paymentsService.cancelAbandonedPayments(1440); // 24 hours = 1440 minutes
 
@@ -68,12 +60,9 @@ export class PaymentSchedulerService {
   async triggerManualCleanup(timeoutMinutes: number = 30) {
     try {
       this.logger.log('=== MANUAL PAYMENT CLEANUP ===');
-      this.logger.log(
-        `Manually triggering cleanup with ${timeoutMinutes} minutes timeout...`,
-      );
+      this.logger.log(`Manually triggering cleanup with ${timeoutMinutes} minutes timeout...`);
 
-      const result =
-        await this.paymentsService.cancelAbandonedPayments(timeoutMinutes);
+      const result = await this.paymentsService.cancelAbandonedPayments(timeoutMinutes);
 
       this.logger.log(`Manual cleanup completed: ${result.message}`);
       this.logger.log('==============================');

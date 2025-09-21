@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
+import { log } from 'console';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -31,7 +32,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // Add root endpoint handler
-  app.use('/', (req, res, next) => {
+  app.use('/', (req: any, res: any, next: any) => {
     if (req.url === '/') {
       res.json({
         message: 'School Payment System API is working successfully! 🎓',
@@ -40,7 +41,8 @@ async function bootstrap() {
         timestamp: new Date().toISOString(),
         apiEndpoint: '/api',
         documentation: 'Visit /api for detailed endpoint information',
-        frontend: configService.get('FRONTEND_URL') || 'https://school-payment-app-delta.vercel.app'
+        frontend:
+          configService.get('FRONTEND_URL') || 'https://school-payment-app-delta.vercel.app',
       });
     } else {
       next();
@@ -48,8 +50,9 @@ async function bootstrap() {
   });
 
   const port = configService.get('PORT') || 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  console.log(`Application is running on: http://localhost:${port}`);
+  console.log(`API endpoints available at: http://localhost:${port}/api`);
 }
 bootstrap();

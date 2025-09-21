@@ -15,13 +15,7 @@ import { TransactionsService } from './transactions.service';
 import { PaymentSchedulerService } from './payment-scheduler.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { Request } from 'express';
-import {
-  IsNotEmpty,
-  IsString,
-  IsNumber,
-  IsEmail,
-  IsObject,
-} from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsEmail, IsObject } from 'class-validator';
 
 class StudentInfoDto {
   @IsString()
@@ -68,12 +62,9 @@ export class PaymentsController {
 
   @Post('create-payment')
   @UseGuards(JwtAuthGuard)
-  async createPayment(
-    @Body() createPaymentDto: CreatePaymentDto,
-    @Req() req: any,
-  ) {
+  async createPayment(@Body() createPaymentDto: CreatePaymentDto, @Req() req: any) {
     const userId = req.user._id || req.user.id;
-    
+
     const paymentData = {
       ...createPaymentDto,
       trustee_id: userId,
@@ -99,7 +90,7 @@ export class PaymentsController {
     @Query('gateway') gateway?: string,
   ) {
     const userId = req.user._id || req.user.id;
-    
+
     return this.transactionsService.getTransactions({
       page: Number(page),
       limit: Number(limit),
@@ -130,10 +121,7 @@ export class PaymentsController {
 
   @Get('transaction-status/:customOrderId')
   @UseGuards(JwtAuthGuard)
-  async getTransactionStatus(
-    @Param('customOrderId') customOrderId: string,
-    @Req() req: any,
-  ) {
+  async getTransactionStatus(@Param('customOrderId') customOrderId: string, @Req() req: any) {
     const userId = req.user._id || req.user.id;
     return this.transactionsService.getTransactionStatus(customOrderId, userId);
   }
@@ -152,9 +140,7 @@ export class PaymentsController {
 
   @Post('cancel-abandoned-payments')
   @UseGuards(JwtAuthGuard)
-  async cancelAbandonedPayments(
-    @Query('timeout_minutes') timeoutMinutes: number = 30,
-  ) {
+  async cancelAbandonedPayments(@Query('timeout_minutes') timeoutMinutes: number = 30) {
     return this.paymentsService.cancelAbandonedPayments(Number(timeoutMinutes));
   }
 
@@ -169,30 +155,20 @@ export class PaymentsController {
 
   @Get('debug-pending-payments')
   @UseGuards(JwtAuthGuard)
-  async debugPendingPayments(
-    @Query('timeout_minutes') timeoutMinutes: number = 30,
-  ) {
+  async debugPendingPayments(@Query('timeout_minutes') timeoutMinutes: number = 30) {
     return this.paymentsService.debugPendingPayments(Number(timeoutMinutes));
   }
 
   @Post('force-cancel-abandoned')
   @UseGuards(JwtAuthGuard)
-  async forceCancelAbandoned(
-    @Query('timeout_minutes') timeoutMinutes: number = 5,
-  ) {
-    return this.paymentsService.forceCancelAbandonedPayments(
-      Number(timeoutMinutes),
-    );
+  async forceCancelAbandoned(@Query('timeout_minutes') timeoutMinutes: number = 5) {
+    return this.paymentsService.forceCancelAbandonedPayments(Number(timeoutMinutes));
   }
 
   @Post('trigger-scheduler')
   @UseGuards(JwtAuthGuard)
-  async triggerScheduler(
-    @Query('timeout_minutes') timeoutMinutes: number = 30,
-  ) {
-    return this.paymentSchedulerService.triggerManualCleanup(
-      Number(timeoutMinutes),
-    );
+  async triggerScheduler(@Query('timeout_minutes') timeoutMinutes: number = 30) {
+    return this.paymentSchedulerService.triggerManualCleanup(Number(timeoutMinutes));
   }
 
   @Get('payment-callback')
@@ -208,10 +184,7 @@ export class PaymentsController {
 
       if (status === 'SUCCESS') {
         try {
-          const order =
-            await this.paymentsService.findOrderByCollectRequestId(
-              collectRequestId,
-            );
+          const order = await this.paymentsService.findOrderByCollectRequestId(collectRequestId);
           let fallbackAmount = 0;
 
           if (order) {
@@ -281,10 +254,7 @@ export class PaymentsController {
           </html>
         `;
       } else if (status === 'FAILED' || status === 'cancelled') {
-        const order =
-          await this.paymentsService.findOrderByCollectRequestId(
-            collectRequestId,
-          );
+        const order = await this.paymentsService.findOrderByCollectRequestId(collectRequestId);
         const transactionAmount = 0;
         const finalStatus = 'FAILED';
 
@@ -299,13 +269,9 @@ export class PaymentsController {
               EdvironCollectRequestId: allParams.EdvironCollectRequestId,
               original_edviron_status: status, // Keep original EDVIRON status
               classified_status: finalStatus, // Our classified status
-              error_reason:
-                allParams.error_reason ||
-                allParams.reason ||
-                'Payment not completed',
+              error_reason: allParams.error_reason || allParams.reason || 'Payment not completed',
               reason: allParams.reason,
-              classification_logic:
-                'Both FAILED and cancelled from EDVIRON marked as FAILED',
+              classification_logic: 'Both FAILED and cancelled from EDVIRON marked as FAILED',
               callback_timestamp: new Date().toISOString(),
             },
           },

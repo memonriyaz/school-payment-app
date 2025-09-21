@@ -22,7 +22,7 @@ const Login: React.FC = () => {
       navigate("/");
     } catch (err: any) {
       setError(
-        err.response?.data?.message || "Login failed. Please try again."
+        err.response?.data?.message || "Login failed. Please try again.",
       );
     } finally {
       setIsLoading(false);

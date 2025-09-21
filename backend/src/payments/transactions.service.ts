@@ -2,10 +2,7 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Order, OrderDocument } from '../schemas/order.schema';
-import {
-  OrderStatus,
-  OrderStatusDocument,
-} from '../schemas/order-status.schema';
+import { OrderStatus, OrderStatusDocument } from '../schemas/order-status.schema';
 
 export enum PaymentStatusCategory {
   PENDING = 'PENDING',
@@ -14,9 +11,7 @@ export enum PaymentStatusCategory {
   CANCELLED = 'CANCELLED',
 }
 
-export function classifyPaymentStatus(
-  rawStatus: string,
-): PaymentStatusCategory {
+export function classifyPaymentStatus(rawStatus: string): PaymentStatusCategory {
   if (!rawStatus) return PaymentStatusCategory.PENDING;
 
   const status = rawStatus.toUpperCase();
@@ -39,7 +34,7 @@ export function classifyPaymentStatus(
     case 'CANCELLED_BY_USER':
     case 'USER_CANCELLED':
     case 'PAYMENT_CANCELLED':
-    case 'USER_DROPPED': 
+    case 'USER_DROPPED':
     case 'DROPPED':
     case 'ABANDONED':
     case 'TIMEOUT':
@@ -95,18 +90,18 @@ export class TransactionsService {
 
       const initialMatchConditions: any = {};
       const postLookupMatchConditions: any = {};
-      
+
       if (userId) {
         initialMatchConditions['trustee_id'] = userId.toString();
       }
-      
+
       if (schoolId) {
         initialMatchConditions['school_id'] = schoolId;
       }
       if (gateway) {
         initialMatchConditions['gateway_name'] = gateway;
       }
-      
+
       if (status) {
         postLookupMatchConditions['orderStatus.status'] = status;
       }
@@ -203,10 +198,7 @@ export class TransactionsService {
         },
       };
     } catch (error) {
-      this.logger.error(
-        `Error fetching transactions: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error fetching transactions: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -305,18 +297,14 @@ export class TransactionsService {
       if (userId) {
         matchConditions.trustee_id = userId;
       }
-      
-      const order = await this.orderModel
-        .findOne(matchConditions)
-        .exec();
+
+      const order = await this.orderModel.findOne(matchConditions).exec();
 
       if (!order) {
         throw new NotFoundException('Transaction not found');
       }
 
-      const orderStatus = await this.orderStatusModel
-        .findOne({ collect_id: order._id })
-        .exec();
+      const orderStatus = await this.orderStatusModel.findOne({ collect_id: order._id }).exec();
 
       if (!orderStatus) {
         throw new NotFoundException('Transaction status not found');
@@ -353,10 +341,7 @@ export class TransactionsService {
       const schoolIds = await this.orderModel.distinct('school_id').exec();
       return schoolIds;
     } catch (error) {
-      this.logger.error(
-        `Error fetching school IDs: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error fetching school IDs: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -390,10 +375,7 @@ export class TransactionsService {
       this.logger.log(`Transaction created with ID: ${savedOrder._id}`);
       return savedOrder;
     } catch (error) {
-      this.logger.error(
-        `Error creating transaction: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error creating transaction: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -424,26 +406,21 @@ export class TransactionsService {
       };
 
       if (additionalData) {
-        if (additionalData.payment_method)
-          updateData.payment_mode = additionalData.payment_method;
+        if (additionalData.payment_method) updateData.payment_mode = additionalData.payment_method;
         if (additionalData.bank_reference)
           updateData.bank_reference = additionalData.bank_reference;
         if (additionalData.payment_time)
           updateData.payment_time = new Date(additionalData.payment_time);
-        if (additionalData.error_message)
-          updateData.error_message = additionalData.error_message;
+        if (additionalData.error_message) updateData.error_message = additionalData.error_message;
         if (additionalData.failure_reason)
           updateData.payment_message = additionalData.failure_reason;
         if (additionalData.callback_received)
           updateData.callback_received = additionalData.callback_received;
-        if (additionalData.callback_time)
-          updateData.callback_time = additionalData.callback_time;
+        if (additionalData.callback_time) updateData.callback_time = additionalData.callback_time;
         if (additionalData.payment_details) {
           try {
             if (typeof additionalData.payment_details === 'string') {
-              updateData.payment_details = JSON.parse(
-                additionalData.payment_details,
-              );
+              updateData.payment_details = JSON.parse(additionalData.payment_details);
             } else if (typeof additionalData.payment_details === 'object') {
               updateData.payment_details = additionalData.payment_details;
             } else {
@@ -452,9 +429,7 @@ export class TransactionsService {
               };
             }
           } catch (parseError) {
-            this.logger.warn(
-              `Failed to parse payment_details: ${parseError.message}`,
-            );
+            this.logger.warn(`Failed to parse payment_details: ${parseError.message}`);
             updateData.payment_details = {
               raw: additionalData.payment_details,
             };
@@ -470,9 +445,7 @@ export class TransactionsService {
         .exec();
 
       if (updatedStatus) {
-        this.logger.log(
-          `Transaction status updated for order ${orderId}: ${status}`,
-        );
+        this.logger.log(`Transaction status updated for order ${orderId}: ${status}`);
         return updatedStatus;
       } else {
         this.logger.error(`Failed to update order status for order ${orderId}`);
@@ -494,7 +467,7 @@ export class TransactionsService {
     additionalData?: any,
   ) {
     try {
-      let order = await this.orderModel
+      const order = await this.orderModel
         .findOne({
           gateway_reference_id: collectRequestId,
         })
@@ -504,8 +477,7 @@ export class TransactionsService {
         const recentPendingStatus = await this.orderStatusModel
           .findOne({
             status: 'PENDING',
-            order_amount:
-              transactionAmount > 0 ? transactionAmount : { $exists: true },
+            order_amount: transactionAmount > 0 ? transactionAmount : { $exists: true },
           })
           .sort({ createdAt: -1 })
           .exec();
@@ -525,12 +497,8 @@ export class TransactionsService {
             if (additionalData.payment_details) {
               try {
                 if (typeof additionalData.payment_details === 'string') {
-                  updateData.payment_details = JSON.parse(
-                    additionalData.payment_details,
-                  );
-                } else if (
-                  typeof additionalData.payment_details === 'object'
-                ) {
+                  updateData.payment_details = JSON.parse(additionalData.payment_details);
+                } else if (typeof additionalData.payment_details === 'object') {
                   updateData.payment_details = additionalData.payment_details;
                 } else {
                   updateData.payment_details = {
@@ -538,9 +506,7 @@ export class TransactionsService {
                   };
                 }
               } catch (parseError) {
-                this.logger.warn(
-                  `Failed to parse payment_details: ${parseError.message}`,
-                );
+                this.logger.warn(`Failed to parse payment_details: ${parseError.message}`);
                 updateData.payment_details = {
                   raw: additionalData.payment_details,
                 };
@@ -559,9 +525,7 @@ export class TransactionsService {
           }
         }
 
-        throw new NotFoundException(
-          `Order with collect_request_id ${collectRequestId} not found`,
-        );
+        throw new NotFoundException(`Order with collect_request_id ${collectRequestId} not found`);
       }
 
       const updateData: any = {
@@ -571,26 +535,21 @@ export class TransactionsService {
       };
 
       if (additionalData) {
-        if (additionalData.payment_method)
-          updateData.payment_mode = additionalData.payment_method;
+        if (additionalData.payment_method) updateData.payment_mode = additionalData.payment_method;
         if (additionalData.bank_reference)
           updateData.bank_reference = additionalData.bank_reference;
         if (additionalData.payment_time)
           updateData.payment_time = new Date(additionalData.payment_time);
-        if (additionalData.error_message)
-          updateData.error_message = additionalData.error_message;
+        if (additionalData.error_message) updateData.error_message = additionalData.error_message;
         if (additionalData.failure_reason)
           updateData.payment_message = additionalData.failure_reason;
         if (additionalData.callback_received)
           updateData.callback_received = additionalData.callback_received;
-        if (additionalData.callback_time)
-          updateData.callback_time = additionalData.callback_time;
+        if (additionalData.callback_time) updateData.callback_time = additionalData.callback_time;
         if (additionalData.payment_details) {
           try {
             if (typeof additionalData.payment_details === 'string') {
-              updateData.payment_details = JSON.parse(
-                additionalData.payment_details,
-              );
+              updateData.payment_details = JSON.parse(additionalData.payment_details);
             } else if (typeof additionalData.payment_details === 'object') {
               updateData.payment_details = additionalData.payment_details;
             } else {
@@ -599,9 +558,7 @@ export class TransactionsService {
               };
             }
           } catch (parseError) {
-            this.logger.warn(
-              `Failed to parse payment_details: ${parseError.message}`,
-            );
+            this.logger.warn(`Failed to parse payment_details: ${parseError.message}`);
             updateData.payment_details = {
               raw: additionalData.payment_details,
             };

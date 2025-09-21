@@ -11,21 +11,21 @@ export class AppService {
       endpoints: {
         authentication: {
           register: 'POST /api/auth/register',
-          login: 'POST /api/auth/login'
+          login: 'POST /api/auth/login',
         },
         payments: {
           create: 'POST /api/create-payment',
           status: 'GET /api/payment-status/:collectRequestId',
           webhook: 'POST /api/webhook',
-          callback: 'GET /api/payment-callback'
+          callback: 'GET /api/payment-callback',
         },
         transactions: {
           all: 'GET /api/transactions',
           bySchool: 'GET /api/transactions/school/:schoolId',
-          checkStatus: 'GET /api/transaction-status/:customOrderId'
-        }
+          checkStatus: 'GET /api/transaction-status/:customOrderId',
+        },
       },
-      documentation: 'Visit /api for detailed endpoint information'
+      documentation: 'Visit /api for detailed endpoint information',
     };
   }
 }

@@ -5,14 +5,8 @@ import { Model } from 'mongoose';
 import axios from 'axios';
 import * as jwt from 'jsonwebtoken';
 import { Order, OrderDocument } from '../schemas/order.schema';
-import {
-  OrderStatus,
-  OrderStatusDocument,
-} from '../schemas/order-status.schema';
-import {
-  WebhookLogs,
-  WebhookLogsDocument,
-} from '../schemas/webhook-logs.schema';
+import { OrderStatus, OrderStatusDocument } from '../schemas/order-status.schema';
+import { WebhookLogs, WebhookLogsDocument } from '../schemas/webhook-logs.schema';
 
 @Injectable()
 export class PaymentsService {
@@ -33,7 +27,7 @@ export class PaymentsService {
       const customOrderId = `ORD_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 
       // Create order in database
-      
+
       const order = new this.orderModel({
         school_id: paymentData.school_id,
         trustee_id: paymentData.trustee_id,
@@ -57,8 +51,7 @@ export class PaymentsService {
       const apiKey = this.configService.get<string>('API_KEY');
       const pgSecret = this.configService.get<string>('PG_SECRET');
       const gatewayUrl = this.configService.get<string>('PAYMENT_GATEWAY_URL');
-      const callbackUrl =
-        this.configService.get<string>('CALLBACK_URL')
+      const callbackUrl = this.configService.get<string>('CALLBACK_URL');
 
       if (!apiKey || !pgSecret || !gatewayUrl) {
         throw new Error(
@@ -69,9 +62,7 @@ export class PaymentsService {
       this.logger.log('EDVIRON Configuration:');
       this.logger.log(`- Gateway URL: ${gatewayUrl}`);
       this.logger.log(`- Callback URL: ${callbackUrl}`);
-      this.logger.log(
-        `- API Key: ${apiKey ? `${apiKey.substring(0, 20)}...` : 'NOT SET'}`,
-      );
+      this.logger.log(`- API Key: ${apiKey ? `${apiKey.substring(0, 20)}...` : 'NOT SET'}`);
       this.logger.log(`- PG Secret: ${pgSecret ? 'SET' : 'NOT SET'}`);
       this.logger.log(
         `- Payment Data: School ID: ${paymentData.school_id}, Amount: ${paymentData.amount}`,
@@ -117,9 +108,7 @@ export class PaymentsService {
           timeout: 30000,
         });
       } catch (firstError) {
-        this.logger.warn(
-          'First attempt failed, trying with minimal payload...',
-        );
+        this.logger.warn('First attempt failed, trying with minimal payload...');
 
         const minimalBody = {
           school_id: paymentData.school_id,
@@ -137,9 +126,7 @@ export class PaymentsService {
             timeout: 30000,
           });
         } catch (secondError) {
-          this.logger.warn(
-            'Second attempt failed, trying with different headers...',
-          );
+          this.logger.warn('Second attempt failed, trying with different headers...');
 
           try {
             response = await axios.post(apiUrl, minimalBody, {
@@ -158,9 +145,7 @@ export class PaymentsService {
         }
       }
 
-      this.logger.log(
-        `Payment created successfully for order: ${customOrderId}`,
-      );
+      this.logger.log(`Payment created successfully for order: ${customOrderId}`);
       this.logger.log(`EDVIRON Response Status: ${response.status}`);
       this.logger.log(`EDVIRON Response:`, response.data);
 
@@ -178,10 +163,7 @@ export class PaymentsService {
         response.data.collect_request_url ||
         response.data.payment_url;
       if (!paymentUrl) {
-        this.logger.error(
-          'No payment URL found in EDVIRON response:',
-          response.data,
-        );
+        this.logger.error('No payment URL found in EDVIRON response:', response.data);
         throw new Error('Payment URL not provided by EDVIRON gateway');
       }
 
@@ -197,10 +179,7 @@ export class PaymentsService {
         message: 'Payment request created successfully',
       };
     } catch (error) {
-      this.logger.error(
-        `Error creating payment: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error creating payment: ${error.message}`, error.stack);
 
       if (error.response) {
         this.logger.error(`Gateway Error Response:`, {
@@ -212,9 +191,7 @@ export class PaymentsService {
       }
 
       if (error.response?.status === 500) {
-        this.logger.error(
-          'EDVIRON API returned 500 error. This might be due to wrong school_id.',
-        );
+        this.logger.error('EDVIRON API returned 500 error. This might be due to wrong school_id.');
         this.logger.error(`Current school_id: ${paymentData.school_id}`);
         this.logger.error(
           'Make sure you are using a valid school_id that exists in EDVIRON system.',
@@ -238,13 +215,13 @@ export class PaymentsService {
         throw new BadRequestException(helpMessage);
       }
 
-      throw new BadRequestException(
-        `Failed to create payment request: ${errorMessage}`,
-      );
+      throw new BadRequestException(`Failed to create payment request: ${errorMessage}`);
     }
   }
 
   async handleWebhook(webhookData: any) {
+    this.logger.log('Webhook received:', JSON.stringify(webhookData, null, 2));
+    
     try {
       // Log webhook payload
       const webhookLog = new this.webhookLogsModel({
@@ -252,30 +229,66 @@ export class PaymentsService {
         source: 'payment_gateway',
         status: 'RECEIVED',
       });
+      
+      this.logger.log('Attempting to save webhook log to database...');
       await webhookLog.save();
+      this.logger.log('Webhook log saved successfully with ID:', webhookLog._id);
 
       // Extract payment information from webhook according to specified format
       const orderInfo = webhookData.order_info;
 
       if (!orderInfo || !orderInfo.order_id) {
-        throw new BadRequestException(
-          'Missing order_info or order_id in webhook payload',
-        );
+        this.logger.warn('Webhook payload missing order_info or order_id:', webhookData);
+        // Still log the webhook but mark as invalid format
+        webhookLog.status = 'FAILED';
+        webhookLog.error_message = 'Missing order_info or order_id in webhook payload';
+        await webhookLog.save();
+        return { success: false, message: 'Missing order_info or order_id in webhook payload' };
       }
 
-      // Find and update order status using order_id as collect_id
-      const orderStatus = await this.orderStatusModel
+      this.logger.log(`Looking for order with order_id: ${orderInfo.order_id}`);
+      
+      // First, try to find the order by its _id (direct match)
+      let orderStatus = await this.orderStatusModel
         .findOne({ collect_id: orderInfo.order_id })
         .exec();
 
+      // If not found by direct collect_id, try to find by custom_order_id or gateway_reference_id
       if (!orderStatus) {
-        this.logger.warn(
-          `Order status not found for order_id: ${orderInfo.order_id}`,
-        );
+        this.logger.log(`Direct collect_id lookup failed, trying alternative lookups...`);
+        
+        // Try to find the order first
+        const order = await this.orderModel
+          .findOne({
+            $or: [
+              { _id: orderInfo.order_id },
+              { custom_order_id: orderInfo.order_id },
+              { gateway_reference_id: orderInfo.order_id }
+            ]
+          })
+          .exec();
+
+        if (order) {
+          this.logger.log(`Found order: ${order._id}, looking for its status...`);
+          // Now find the order status using the order's _id
+          orderStatus = await this.orderStatusModel
+            .findOne({ collect_id: order._id })
+            .exec();
+        }
+      }
+
+      if (!orderStatus) {
+        this.logger.warn(`Order status not found for order_id: ${orderInfo.order_id}`);
+        this.logger.log('Available order statuses in database (first 5):');
+        const allOrderStatuses = await this.orderStatusModel.find({}).limit(5).exec();
+        allOrderStatuses.forEach(orderStat => {
+          this.logger.log(`- Collect ID: ${orderStat.collect_id}, Status: ${orderStat.status}`);
+        });
+        
         webhookLog.status = 'FAILED';
         webhookLog.error_message = 'Order not found';
         await webhookLog.save();
-        return { success: false, message: 'Order not found' };
+        return { success: false, message: 'Order not found', webhook_id: webhookLog._id };
       }
 
       // Update order status with webhook data according to specified format
@@ -302,43 +315,58 @@ export class PaymentsService {
       webhookLog.processed_at = new Date();
       await webhookLog.save();
 
-      this.logger.log(
-        `Webhook processed successfully for order_id: ${orderInfo.order_id}`,
-      );
+      this.logger.log(`Webhook processed successfully for order_id: ${orderInfo.order_id}`);
 
       return {
         success: true,
         message: 'Webhook processed successfully',
       };
     } catch (error) {
-      this.logger.error(
-        `Error processing webhook: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error processing webhook: ${error.message}`, error.stack);
 
-      // Update webhook log with error
-      if (webhookData) {
-        const webhookLog = new this.webhookLogsModel({
+      // Try to save webhook log with error if we haven't already
+      try {
+        const errorWebhookLog = new this.webhookLogsModel({
           payload: webhookData,
           source: 'payment_gateway',
           status: 'FAILED',
           error_message: error.message,
         });
-        await webhookLog.save();
+        await errorWebhookLog.save();
+        this.logger.log('Error webhook log saved with ID:', errorWebhookLog._id);
+      } catch (logError) {
+        this.logger.error('Failed to save error webhook log:', logError.message);
       }
 
-      throw new BadRequestException('Failed to process webhook');
+      // Return error response instead of throwing
+      return {
+        success: false,
+        message: `Failed to process webhook: ${error.message}`,
+        error: error.message
+      };
     }
   }
 
   async checkPaymentStatus(collectRequestId: string, schoolId: string) {
     try {
       const pgSecret = this.configService.get<string>('PG_SECRET');
+      const apiKey = this.configService.get<string>('API_KEY');
       const gatewayUrl = this.configService.get<string>('PAYMENT_GATEWAY_URL');
 
       if (!pgSecret) {
         throw new Error('PG_SECRET is not defined in environment variables');
       }
+
+      if (!apiKey) {
+        throw new Error('API_KEY is not defined in environment variables');
+      }
+
+      if (!gatewayUrl) {
+        throw new Error('PAYMENT_GATEWAY_URL is not defined in environment variables');
+      }
+
+      this.logger.log(`Checking payment status for collect_request_id: ${collectRequestId}`);
+      this.logger.log(`Using school_id: ${schoolId}`);
 
       // Prepare JWT payload for signing according to EDVIRON specs
       const jwtPayload = {
@@ -348,15 +376,32 @@ export class PaymentsService {
 
       // Sign payload with PG Secret Key
       const signedJWT = jwt.sign(jwtPayload, pgSecret);
+      this.logger.log(`Generated JWT signature length: ${signedJWT.length}`);
 
-      // Call EDVIRON payment status API
-      const response = await axios.get(
-        `${gatewayUrl}collect-request/${collectRequestId}?school_id=${schoolId}&sign=${signedJWT}`,
-      );
+      // Build the API endpoint URL
+      const apiUrl = gatewayUrl.endsWith('/')
+        ? `${gatewayUrl}collect-request/${collectRequestId}`
+        : `${gatewayUrl}/collect-request/${collectRequestId}`;
 
-      this.logger.log(
-        `Payment status checked for collect_request_id: ${collectRequestId}`,
-      );
+      this.logger.log(`Making payment status API call to: ${apiUrl}`);
+
+      // Call EDVIRON payment status API with proper headers and query params
+      const response = await axios.get(apiUrl, {
+        params: {
+          school_id: schoolId,
+          sign: signedJWT,
+        },
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        timeout: 30000,
+      });
+
+      this.logger.log(`Payment status API call successful!`);
+      this.logger.log(`Response status: ${response.status}`);
+      this.logger.log(`Response data:`, JSON.stringify(response.data, null, 2));
 
       return {
         success: true,
@@ -364,18 +409,30 @@ export class PaymentsService {
         amount: response.data.amount,
         details: response.data.details,
         jwt: response.data.jwt,
+        raw_response: response.data,
       };
     } catch (error) {
-      this.logger.error(
-        `Error checking payment status: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error checking payment status: ${error.message}`, error.stack);
+      
       if (error.response) {
-        this.logger.error(`Gateway response:`, error.response.data);
+        this.logger.error(`HTTP Status: ${error.response.status}`);
+        this.logger.error(`Gateway response:`, JSON.stringify(error.response.data, null, 2));
+        this.logger.error(`Request headers used:`, JSON.stringify(error.config?.headers, null, 2));
+        this.logger.error(`Request URL:`, error.config?.url);
       }
-      throw new BadRequestException(
-        `Failed to check payment status: ${error.message}`,
-      );
+      
+      // Provide more specific error messages
+      if (error.response?.status === 401) {
+        throw new BadRequestException(
+          'Payment status check failed: Unauthorized. Please check API_KEY configuration.'
+        );
+      } else if (error.response?.status === 404) {
+        throw new BadRequestException(
+          'Payment status check failed: Payment request not found. Please check the collect_request_id.'
+        );
+      } else {
+        throw new BadRequestException(`Failed to check payment status: ${error.message}`);
+      }
     }
   }
 
@@ -389,9 +446,7 @@ export class PaymentsService {
         .exec();
 
       if (!order) {
-        this.logger.warn(
-          `Order with gateway_reference_id '${collectRequestId}' not found`,
-        );
+        this.logger.warn(`Order with gateway_reference_id '${collectRequestId}' not found`);
         return null;
       }
 
@@ -411,10 +466,7 @@ export class PaymentsService {
         status: orderStatus?.status || 'PENDING',
       };
     } catch (error) {
-      this.logger.error(
-        `Error finding order by collect_request_id: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Error finding order by collect_request_id: ${error.message}`, error.stack);
       return null;
     }
   }
@@ -446,9 +498,7 @@ export class PaymentsService {
         })
         .exec();
 
-      this.logger.log(
-        `Found ${abandonedOrderStatuses.length} abandoned payments to cancel`,
-      );
+      this.logger.log(`Found ${abandonedOrderStatuses.length} abandoned payments to cancel`);
 
       let cancelledCount = 0;
 
@@ -458,8 +508,7 @@ export class PaymentsService {
           await this.orderStatusModel
             .findByIdAndUpdate(orderStatus._id, {
               status: 'CANCELLED',
-              error_message:
-                'Payment abandoned - no callback received within timeout period',
+              error_message: 'Payment abandoned - no callback received within timeout period',
               payment_message: `Payment automatically cancelled after ${timeoutMinutes} minutes of inactivity`,
               updatedAt: new Date(),
             })
@@ -468,9 +517,7 @@ export class PaymentsService {
           cancelledCount++;
 
           // Log the cancellation
-          const order = await this.orderModel
-            .findById(orderStatus.collect_id)
-            .exec();
+          const order = await this.orderModel.findById(orderStatus.collect_id).exec();
           if (order) {
             this.logger.log(
               `Cancelled abandoned payment: ${order.custom_order_id} (collect_id: ${orderStatus.collect_id})`,
@@ -495,13 +542,8 @@ export class PaymentsService {
         message: `Cancelled ${cancelledCount} abandoned payments`,
       };
     } catch (error) {
-      this.logger.error(
-        `Error cancelling abandoned payments: ${error.message}`,
-        error.stack,
-      );
-      throw new BadRequestException(
-        `Failed to cancel abandoned payments: ${error.message}`,
-      );
+      this.logger.error(`Error cancelling abandoned payments: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to cancel abandoned payments: ${error.message}`);
     }
   }
 
@@ -509,27 +551,18 @@ export class PaymentsService {
    * Cancel a specific payment by custom order ID
    * This can be called manually for specific payments
    */
-  async cancelPaymentByOrderId(
-    customOrderId: string,
-    reason: string = 'Manual cancellation',
-  ) {
+  async cancelPaymentByOrderId(customOrderId: string, reason: string = 'Manual cancellation') {
     try {
       this.logger.log(`Cancelling payment with order ID: ${customOrderId}`);
 
       // Find the order
-      const order = await this.orderModel
-        .findOne({ custom_order_id: customOrderId })
-        .exec();
+      const order = await this.orderModel.findOne({ custom_order_id: customOrderId }).exec();
       if (!order) {
-        throw new Error(
-          `Order with custom_order_id '${customOrderId}' not found`,
-        );
+        throw new Error(`Order with custom_order_id '${customOrderId}' not found`);
       }
 
       // Find and update the order status
-      const orderStatus = await this.orderStatusModel
-        .findOne({ collect_id: order._id })
-        .exec();
+      const orderStatus = await this.orderStatusModel.findOne({ collect_id: order._id }).exec();
       if (!orderStatus) {
         throw new Error(`Order status for order '${customOrderId}' not found`);
       }
@@ -561,13 +594,8 @@ export class PaymentsService {
         reason: reason,
       };
     } catch (error) {
-      this.logger.error(
-        `Error cancelling payment ${customOrderId}: ${error.message}`,
-        error.stack,
-      );
-      throw new BadRequestException(
-        `Failed to cancel payment: ${error.message}`,
-      );
+      this.logger.error(`Error cancelling payment ${customOrderId}: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to cancel payment: ${error.message}`);
     }
   }
 
@@ -577,9 +605,7 @@ export class PaymentsService {
   async debugPendingPayments(timeoutMinutes: number = 30) {
     try {
       this.logger.log(`=== DEBUGGING PENDING PAYMENTS ===`);
-      this.logger.log(
-        `Looking for payments older than ${timeoutMinutes} minutes`,
-      );
+      this.logger.log(`Looking for payments older than ${timeoutMinutes} minutes`);
 
       // Calculate cutoff time
       const cutoffTime = new Date(Date.now() - timeoutMinutes * 60 * 1000);
@@ -659,29 +685,20 @@ export class PaymentsService {
           callback_received: p.callback_received,
           created: (p as any).createdAt,
           age_minutes: Math.round(
-            (Date.now() - new Date((p as any).createdAt).getTime()) /
-              (1000 * 60),
+            (Date.now() - new Date((p as any).createdAt).getTime()) / (1000 * 60),
           ),
         })),
       };
     } catch (error) {
-      this.logger.error(
-        `Error debugging pending payments: ${error.message}`,
-        error.stack,
-      );
-      throw new BadRequestException(
-        `Failed to debug pending payments: ${error.message}`,
-      );
+      this.logger.error(`Error debugging pending payments: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to debug pending payments: ${error.message}`);
     }
   }
 
-  
   async forceCancelAbandonedPayments(timeoutMinutes: number = 5) {
     try {
       this.logger.log(`=== FORCE CANCELLING ABANDONED PAYMENTS ===`);
-      this.logger.log(
-        `Forcing cancellation of payments older than ${timeoutMinutes} minutes`,
-      );
+      this.logger.log(`Forcing cancellation of payments older than ${timeoutMinutes} minutes`);
 
       // Calculate cutoff time
       const cutoffTime = new Date(Date.now() - timeoutMinutes * 60 * 1000);
@@ -697,20 +714,16 @@ export class PaymentsService {
         })
         .exec();
 
-      this.logger.log(
-        `Found ${abandonedOrderStatuses.length} old PENDING payments to cancel`,
-      );
+      this.logger.log(`Found ${abandonedOrderStatuses.length} old PENDING payments to cancel`);
 
       let cancelledCount = 0;
-      let errors: string[] = [];
+      const errors: string[] = [];
 
       for (const orderStatus of abandonedOrderStatuses) {
         try {
           // Check if it has received callback - if yes, skip cancellation
           if (orderStatus.callback_received === true) {
-            this.logger.log(
-              `Skipping order ${orderStatus._id} - callback already received`,
-            );
+            this.logger.log(`Skipping order ${orderStatus._id} - callback already received`);
             continue;
           }
 
@@ -718,8 +731,7 @@ export class PaymentsService {
           await this.orderStatusModel
             .findByIdAndUpdate(orderStatus._id, {
               status: 'CANCELLED',
-              error_message:
-                'Payment abandoned - no callback received within timeout period',
+              error_message: 'Payment abandoned - no callback received within timeout period',
               payment_message: `Payment automatically cancelled after ${timeoutMinutes} minutes of inactivity (force cancelled)`,
               updatedAt: new Date(),
             })
@@ -728,12 +740,12 @@ export class PaymentsService {
           cancelledCount++;
 
           // Log the cancellation
-          const order = await this.orderModel
-            .findById(orderStatus.collect_id)
-            .exec();
+          const order = await this.orderModel.findById(orderStatus.collect_id).exec();
           if (order) {
             this.logger.log(
-              `Force cancelled abandoned payment: ${order.custom_order_id} (age: ${Math.round((Date.now() - new Date((orderStatus as any).createdAt).getTime()) / (1000 * 60))} minutes)`,
+              `Force cancelled abandoned payment: ${order.custom_order_id} (age: ${Math.round(
+                (Date.now() - new Date((orderStatus as any).createdAt).getTime()) / (1000 * 60),
+              )} minutes)`,
             );
           }
         } catch (updateError) {
@@ -763,13 +775,8 @@ export class PaymentsService {
         errors: errors,
       };
     } catch (error) {
-      this.logger.error(
-        `Error force cancelling abandoned payments: ${error.message}`,
-        error.stack,
-      );
-      throw new BadRequestException(
-        `Failed to force cancel abandoned payments: ${error.message}`,
-      );
+      this.logger.error(`Error force cancelling abandoned payments: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to force cancel abandoned payments: ${error.message}`);
     }
   }
 }

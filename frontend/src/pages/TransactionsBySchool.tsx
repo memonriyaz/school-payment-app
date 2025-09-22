@@ -10,7 +10,7 @@ const TransactionsBySchool: React.FC = () => {
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
-    totalCount: 0,
+    totalCount: 1,
     hasNextPage: false,
     hasPrevPage: false,
   });

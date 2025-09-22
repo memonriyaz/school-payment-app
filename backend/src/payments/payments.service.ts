@@ -36,7 +36,7 @@ export class PaymentsService {
         custom_order_id: customOrderId,
       });
 
-      const savedOrder = await order.save();
+      await order.save();
 
       // Create initial order status
       const orderStatus = new this.orderStatusModel({
@@ -221,7 +221,7 @@ export class PaymentsService {
 
   async handleWebhook(webhookData: any) {
     this.logger.log('Webhook received:', JSON.stringify(webhookData, null, 2));
-    
+
     try {
       // Log webhook payload
       const webhookLog = new this.webhookLogsModel({
@@ -229,7 +229,7 @@ export class PaymentsService {
         source: 'payment_gateway',
         status: 'RECEIVED',
       });
-      
+
       this.logger.log('Attempting to save webhook log to database...');
       await webhookLog.save();
       this.logger.log('Webhook log saved successfully with ID:', webhookLog._id);
@@ -247,7 +247,7 @@ export class PaymentsService {
       }
 
       this.logger.log(`Looking for order with order_id: ${orderInfo.order_id}`);
-      
+
       // First, try to find the order by its _id (direct match)
       let orderStatus = await this.orderStatusModel
         .findOne({ collect_id: orderInfo.order_id })
@@ -256,24 +256,22 @@ export class PaymentsService {
       // If not found by direct collect_id, try to find by custom_order_id or gateway_reference_id
       if (!orderStatus) {
         this.logger.log(`Direct collect_id lookup failed, trying alternative lookups...`);
-        
+
         // Try to find the order first
         const order = await this.orderModel
           .findOne({
             $or: [
               { _id: orderInfo.order_id },
               { custom_order_id: orderInfo.order_id },
-              { gateway_reference_id: orderInfo.order_id }
-            ]
+              { gateway_reference_id: orderInfo.order_id },
+            ],
           })
           .exec();
 
         if (order) {
           this.logger.log(`Found order: ${order._id}, looking for its status...`);
           // Now find the order status using the order's _id
-          orderStatus = await this.orderStatusModel
-            .findOne({ collect_id: order._id })
-            .exec();
+          orderStatus = await this.orderStatusModel.findOne({ collect_id: order._id }).exec();
         }
       }
 
@@ -281,10 +279,10 @@ export class PaymentsService {
         this.logger.warn(`Order status not found for order_id: ${orderInfo.order_id}`);
         this.logger.log('Available order statuses in database (first 5):');
         const allOrderStatuses = await this.orderStatusModel.find({}).limit(5).exec();
-        allOrderStatuses.forEach(orderStat => {
+        allOrderStatuses.forEach((orderStat) => {
           this.logger.log(`- Collect ID: ${orderStat.collect_id}, Status: ${orderStat.status}`);
         });
-        
+
         webhookLog.status = 'FAILED';
         webhookLog.error_message = 'Order not found';
         await webhookLog.save();
@@ -342,7 +340,7 @@ export class PaymentsService {
       return {
         success: false,
         message: `Failed to process webhook: ${error.message}`,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -392,9 +390,9 @@ export class PaymentsService {
           sign: signedJWT,
         },
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         timeout: 30000,
       });
@@ -413,22 +411,22 @@ export class PaymentsService {
       };
     } catch (error) {
       this.logger.error(`Error checking payment status: ${error.message}`, error.stack);
-      
+
       if (error.response) {
         this.logger.error(`HTTP Status: ${error.response.status}`);
         this.logger.error(`Gateway response:`, JSON.stringify(error.response.data, null, 2));
         this.logger.error(`Request headers used:`, JSON.stringify(error.config?.headers, null, 2));
         this.logger.error(`Request URL:`, error.config?.url);
       }
-      
+
       // Provide more specific error messages
       if (error.response?.status === 401) {
         throw new BadRequestException(
-          'Payment status check failed: Unauthorized. Please check API_KEY configuration.'
+          'Payment status check failed: Unauthorized. Please check API_KEY configuration.',
         );
       } else if (error.response?.status === 404) {
         throw new BadRequestException(
-          'Payment status check failed: Payment request not found. Please check the collect_request_id.'
+          'Payment status check failed: Payment request not found. Please check the collect_request_id.',
         );
       } else {
         throw new BadRequestException(`Failed to check payment status: ${error.message}`);

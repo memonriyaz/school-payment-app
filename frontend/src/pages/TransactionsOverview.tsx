@@ -37,7 +37,7 @@ const TransactionsOverview: React.FC = () => {
     console.log("TransactionsOverview: Initializing filters");
     console.log(
       "URL Search Params:",
-      Object.fromEntries(searchParams.entries()),
+      Object.fromEntries(searchParams.entries())
     );
 
     // Check if we have payment completion params - if so, ignore all filters
@@ -122,8 +122,8 @@ const TransactionsOverview: React.FC = () => {
 
       const params: any = Object.fromEntries(
         Object.entries(filters).filter(
-          ([_, value]) => value !== "" && value !== 0,
-        ),
+          ([_, value]) => value !== "" && value !== 0
+        )
       );
 
       // Add cache busting if forcing fresh data
@@ -136,8 +136,9 @@ const TransactionsOverview: React.FC = () => {
       console.log("- current filters:", filters);
       console.log("- API params:", params);
 
-      const response: TransactionsResponse =
-        await apiService.getTransactions(params);
+      const response: TransactionsResponse = await apiService.getTransactions(
+        params
+      );
 
       console.log("API response:", {
         dataCount: response.data?.length || 0,
@@ -199,7 +200,7 @@ const TransactionsOverview: React.FC = () => {
     } else {
       // NEW: Check for recent transactions to detect payment completion
       console.log(
-        "🚀 No explicit payment flags - will check for recent transactions after data loads",
+        "🚀 No explicit payment flags - will check for recent transactions after data loads"
       );
 
       // Set a flag to check for recent transactions after initial data load
@@ -232,8 +233,9 @@ const TransactionsOverview: React.FC = () => {
         _cacheBust: true,
       };
 
-      const response: TransactionsResponse =
-        await apiService.getTransactions(params);
+      const response: TransactionsResponse = await apiService.getTransactions(
+        params
+      );
 
       if (response.data && response.data.length > 0) {
         // Check if any transactions were created recently
@@ -246,7 +248,7 @@ const TransactionsOverview: React.FC = () => {
 
         if (recentTransactions.length > 0) {
           console.log(
-            "🎉 RECENT PAYMENT DETECTED FROM TRANSACTION DATA - TRIGGERING AUTO-RESET",
+            "🎉 RECENT PAYMENT DETECTED FROM TRANSACTION DATA - TRIGGERING AUTO-RESET"
           );
           setNeedsAutoReset(true);
         }
@@ -263,7 +265,7 @@ const TransactionsOverview: React.FC = () => {
   useEffect(() => {
     if (needsAutoReset) {
       console.log(
-        "🚀 AUTO-RESET TRIGGERED - Will click reset button in 1 second",
+        "🚀 AUTO-RESET TRIGGERED - Will click reset button in 1 second"
       );
 
       const timer = setTimeout(() => {
@@ -274,7 +276,7 @@ const TransactionsOverview: React.FC = () => {
           resetButtonRef.current.click();
         } else {
           console.log(
-            "🔧 FALLBACK: Button ref not found, calling function directly",
+            "🔧 FALLBACK: Button ref not found, calling function directly"
           );
           resetFiltersAndFetch();
         }
@@ -345,7 +347,7 @@ const TransactionsOverview: React.FC = () => {
 
       if (hasActiveFilters && !needsAutoReset) {
         console.log(
-          "🚨 ZERO TRANSACTIONS WITH ACTIVE FILTERS - AUTO-RESETTING!",
+          "🚨 ZERO TRANSACTIONS WITH ACTIVE FILTERS - AUTO-RESETTING!"
         );
         setNeedsAutoReset(true);
       }
@@ -370,14 +372,14 @@ const TransactionsOverview: React.FC = () => {
           "🎯 Using backend status_category:",
           transaction.status_category,
           "for transaction:",
-          transaction.collect_id,
+          transaction.collect_id
         );
         return transaction.status_category;
       }
 
       console.log(
         "⚙️ Fallback: Classifying raw status on frontend:",
-        transaction.status,
+        transaction.status
       );
       return normalizeStatus(transaction.status);
     };
@@ -393,7 +395,7 @@ const TransactionsOverview: React.FC = () => {
       // SUCCESS - Completed payments
       if (
         ["success", "successful", "completed", "paid", "confirm"].includes(
-          status,
+          status
         )
       ) {
         return "SUCCESS";
@@ -438,7 +440,7 @@ const TransactionsOverview: React.FC = () => {
       console.warn(
         "⚠️  Unknown payment status:",
         rawStatus,
-        "- will analyze and categorize",
+        "- will analyze and categorize"
       );
       console.log("📊  Status analysis for:", rawStatus);
 
@@ -481,7 +483,7 @@ const TransactionsOverview: React.FC = () => {
       console.warn(
         "⚠️  No pattern match found for:",
         rawStatus,
-        "- defaulting to CANCELLED",
+        "- defaulting to CANCELLED"
       );
       return "CANCELLED";
     };
@@ -859,7 +861,7 @@ const TransactionsOverview: React.FC = () => {
                     <span className="font-medium">
                       {Math.min(
                         pagination.currentPage * filters.limit,
-                        pagination.totalCount,
+                        pagination.totalCount
                       )}
                     </span>{" "}
                     of{" "}
